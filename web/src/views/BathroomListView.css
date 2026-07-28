@@ -60,6 +60,30 @@
   padding: 4px 20px 24px;
 }
 
+.list-view__section-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 20px 10px;
+}
+
+.list-view__section-divider::before,
+.list-view__section-divider::after {
+  content: "";
+  flex: 1;
+  height: 0.5px;
+  background: var(--border);
+}
+
+.list-view__section-divider span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .bathroom-card {
   display: flex;
   flex-direction: column;

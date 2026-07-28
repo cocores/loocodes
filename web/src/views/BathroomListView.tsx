@@ -8,9 +8,11 @@ import { StarRating } from "../components/StarRating";
 import { BathroomDetailSheet } from "./BathroomDetailSheet";
 import "./BathroomListView.css";
 
+const FURTHER_AWAY_THRESHOLD_MILES = 25;
+
 export function BathroomListView() {
   const { bathrooms, isLoading } = useBathroomStore();
-  const { distanceTo } = useLocation();
+  const { distanceTo, distanceMilesTo } = useLocation();
   const [selectedType, setSelectedType] = useState<BathroomTypeId | null>(null);
   const [adaOnly, setAdaOnly] = useState(false);
   const [selected, setSelected] = useState<Bathroom | null>(null);
@@ -22,6 +24,17 @@ export function BathroomListView() {
       ),
     [bathrooms, selectedType, adaOnly],
   );
+
+  const { nearby, further } = useMemo(() => {
+    const nearby: Bathroom[] = [];
+    const further: Bathroom[] = [];
+    for (const b of filtered) {
+      const miles = distanceMilesTo(b);
+      // Unknown distance (no location permission yet) stays in the main list.
+      (miles !== null && miles >= FURTHER_AWAY_THRESHOLD_MILES ? further : nearby).push(b);
+    }
+    return { nearby, further };
+  }, [filtered, distanceMilesTo]);
 
   return (
     <div className="screen list-view">
@@ -65,11 +78,38 @@ export function BathroomListView() {
           <span>Try a different filter</span>
         </div>
       ) : (
-        <div className="list-view__cards">
-          {filtered.map((b) => (
-            <BathroomCard key={b.id} bathroom={b} distance={distanceTo(b)} onOpen={() => setSelected(b)} />
-          ))}
-        </div>
+        <>
+          {nearby.length > 0 && (
+            <div className="list-view__cards">
+              {nearby.map((b) => (
+                <BathroomCard
+                  key={b.id}
+                  bathroom={b}
+                  distance={distanceTo(b)}
+                  onOpen={() => setSelected(b)}
+                />
+              ))}
+            </div>
+          )}
+
+          {further.length > 0 && (
+            <>
+              <div className="list-view__section-divider">
+                <span>Further Away</span>
+              </div>
+              <div className="list-view__cards">
+                {further.map((b) => (
+                  <BathroomCard
+                    key={b.id}
+                    bathroom={b}
+                    distance={distanceTo(b)}
+                    onOpen={() => setSelected(b)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {selected && <BathroomDetailSheet bathroom={selected} onClose={() => setSelected(null)} />}

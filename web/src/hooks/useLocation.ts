@@ -42,14 +42,21 @@ export function useLocation() {
     requestLocation();
   }, [requestLocation]);
 
-  const distanceTo = useCallback(
-    (coordinate: Coordinate): string => {
-      if (!location) return "—";
-      const miles = haversineMiles(location, coordinate);
-      return `${miles.toFixed(1)} mi`;
+  const distanceMilesTo = useCallback(
+    (coordinate: Coordinate): number | null => {
+      if (!location) return null;
+      return haversineMiles(location, coordinate);
     },
     [location],
   );
 
-  return { location, status, requestLocation, distanceTo };
+  const distanceTo = useCallback(
+    (coordinate: Coordinate): string => {
+      const miles = distanceMilesTo(coordinate);
+      return miles === null ? "—" : `${miles.toFixed(1)} mi`;
+    },
+    [distanceMilesTo],
+  );
+
+  return { location, status, requestLocation, distanceTo, distanceMilesTo };
 }
