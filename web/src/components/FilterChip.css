@@ -1,0 +1,26 @@
+.filter-chip {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--card);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 0.5px solid var(--border);
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filter-chip--selected {
+  color: #1a1a1f;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.filter-chip--dashed {
+  border-style: dashed;
+  border-color: var(--blue);
+}
+
+.filter-chip--dashed.filter-chip--selected {
+  border-style: solid;
+}

@@ -1,8 +1,12 @@
 # LooCodes
 
-A SwiftUI app for finding and sharing bathroom access codes.
+An app for finding and sharing bathroom access codes: a SwiftUI iOS app
+(`LooCodes/`) and a browser version (`web/`), sharing the same screens,
+data model, and dark theme.
 
-## Structure
+## iOS (SwiftUI)
+
+### Structure
 
 ```
 LooCodes/
@@ -25,7 +29,7 @@ LooCodes/
     └── Color+Hex.swift
 ```
 
-## Notes
+### Notes
 
 - `BathroomStore` and `LocationService` are in-memory/stub implementations
   (no networking or persistence yet) so the views have something concrete
@@ -33,3 +37,13 @@ LooCodes/
 - This repo currently contains source files only. To run the app, create
   an Xcode project (iOS App, SwiftUI lifecycle) and add the `LooCodes/`
   folder as its source, or generate one with a tool like XcodeGen.
+
+## Web (React + Vite)
+
+See [`web/README.md`](web/README.md). Quick start:
+
+```bash
+cd web
+npm install
+npm run dev
+```

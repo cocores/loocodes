@@ -1,0 +1,61 @@
+:root {
+  --bg: #1a1a1f;
+  --card: #252530;
+  --card-alt: #252540;
+  --border: #3a3a4a;
+  --blue: #5b9ef5;
+  --blue-bg: #0a1a40;
+  --green: #34c759;
+  --green-bg: #0d2b12;
+  --copied-bg: #003015;
+  --orange: #f5a623;
+  --orange-bg: #2a1d00;
+  --flag: #ff9500;
+  --flag-bg: #2a1500;
+  --muted: #8888aa;
+  --note-text: #aaaacc;
+  --white: #ffffff;
+
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(91, 158, 245, 0.35);
+}

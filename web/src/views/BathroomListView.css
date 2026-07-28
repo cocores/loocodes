@@ -1,0 +1,190 @@
+.screen {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+.list-view__header {
+  padding: 20px 20px 8px;
+}
+
+.list-view__header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.list-view__chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 16px;
+  scrollbar-width: none;
+}
+
+.list-view__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.list-view__count {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.list-view__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 80px 20px;
+  color: var(--muted);
+}
+
+.list-view__empty-icon {
+  font-size: 40px;
+  margin-bottom: 4px;
+}
+
+.list-view__empty p {
+  margin: 0;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.list-view__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 20px 24px;
+}
+
+.bathroom-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--card);
+  border: 0.5px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bathroom-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bathroom-card__name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.bathroom-card__verified {
+  color: var(--blue);
+  font-size: 13px;
+}
+
+.bathroom-card__name--verified {
+  color: var(--blue);
+}
+
+.bathroom-card__address {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.bathroom-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bathroom-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bathroom-card__rating-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orange);
+}
+
+.bathroom-card__spacer {
+  flex: 1;
+}
+
+.bathroom-card__votes {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bathroom-card__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--card-alt);
+  border-radius: 8px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--note-text);
+}
+
+.bathroom-card__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.bathroom-card__vote {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--blue);
+  background: var(--blue-bg);
+  text-align: center;
+}
+
+.bathroom-card__vote:disabled {
+  cursor: default;
+}
+
+.bathroom-card__vote--active {
+  color: #1a1a1f;
+  background: var(--blue);
+}
+
+.bathroom-card__flag {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--card);
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.bathroom-card__flag:disabled {
+  cursor: default;
+}
+
+.bathroom-card__flag--active {
+  background: var(--flag-bg);
+  filter: none;
+  opacity: 1;
+}

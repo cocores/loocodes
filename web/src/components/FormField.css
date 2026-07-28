@@ -1,0 +1,38 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.form-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dark-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--card);
+  color: var(--white);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+}
+
+.dark-input:focus {
+  border-color: var(--blue);
+}
+
+.dark-input::placeholder {
+  color: var(--muted);
+}
+
+textarea.dark-input {
+  resize: vertical;
+  min-height: 64px;
+  font-family: inherit;
+}

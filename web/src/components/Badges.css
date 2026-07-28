@@ -1,0 +1,38 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.badge--neutral {
+  color: var(--white);
+  background: var(--border);
+}
+
+.badge--code {
+  color: var(--green);
+  background: var(--green-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+}
+
+.badge--green {
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+.badge--orange {
+  color: var(--orange);
+  background: var(--orange-bg);
+}
+
+.badge--muted {
+  color: var(--muted);
+  background: var(--card);
+}

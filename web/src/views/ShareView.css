@@ -1,0 +1,245 @@
+.share-view__header {
+  padding: 20px 20px 4px;
+}
+
+.share-view__header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.share-view__form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px 20px 32px;
+  max-width: 560px;
+}
+
+.share-view__chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.share-view__entry-toggle {
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+}
+
+.share-view__entry-btn {
+  flex: 1;
+  padding: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+  background: var(--card);
+}
+
+.share-view__entry-btn--free-active {
+  color: #1a1a1f;
+  background: var(--green);
+}
+
+.share-view__entry-btn--paid-active {
+  color: #1a1a1f;
+  background: var(--orange);
+}
+
+.share-view__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.share-view__segmented {
+  display: flex;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 10px;
+}
+
+.share-view__segment {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  border-radius: 8px;
+}
+
+.share-view__segment--active {
+  color: var(--white);
+  background: var(--border);
+}
+
+.share-view__gps-status {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.share-view__gps-status--ok {
+  color: var(--green);
+}
+
+.share-view__gps-status--pin {
+  color: var(--blue);
+}
+
+.share-view__pin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share-view__submit {
+  padding: 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--white);
+  background: var(--blue);
+}
+
+.share-view__submit:disabled {
+  background: var(--border);
+  cursor: default;
+}
+
+/* Publish overlay */
+
+.publish-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: fade-in 0.2s ease-out;
+}
+
+.publish-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px;
+  max-width: 380px;
+  width: 100%;
+}
+
+.publish-overlay__spinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 4px solid var(--border);
+  border-top-color: var(--blue);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.publish-overlay__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding: 20px;
+  background: var(--card);
+  border-radius: 16px;
+}
+
+.publish-overlay__step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.publish-overlay__step-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  font-size: 12px;
+}
+
+.publish-overlay__step-icon--done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.publish-overlay__step-icon--active {
+  border-color: var(--blue);
+  background: radial-gradient(circle, var(--blue) 40%, transparent 42%);
+}
+
+.publish-overlay__step-text {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.publish-overlay__step-text--active {
+  font-size: 14px;
+  color: var(--white);
+}
+
+.publish-overlay__step-text--done {
+  font-size: 14px;
+  color: var(--green);
+}
+
+.publish-overlay__check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+.publish-overlay__content h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.publish-overlay__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: 14px;
+  width: 100%;
+}
+
+.publish-overlay__summary-name {
+  font-weight: 600;
+}
+
+.publish-overlay__button {
+  padding: 14px 28px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--white);
+  background: var(--blue);
+}

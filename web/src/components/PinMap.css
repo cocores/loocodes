@@ -1,0 +1,15 @@
+.pin-map {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+}
+
+.pin-map__marker {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+.leaflet-control-attribution {
+  font-size: 9px;
+}
