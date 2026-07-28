@@ -110,6 +110,13 @@
   cursor: default;
 }
 
+.share-view__error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--flag);
+  text-align: center;
+}
+
 /* Publish overlay */
 
 .publish-overlay {

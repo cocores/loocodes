@@ -47,3 +47,21 @@ cd web
 npm install
 npm run dev
 ```
+
+## API (`api/`)
+
+Vercel serverless functions backing the web app's public sharing feature —
+a shared, KV-backed list of bathrooms so a published code is visible to
+every visitor, not just the browser that shared it. See
+[`web/README.md`](web/README.md#public-sharing-vercel-kv) for the one-time
+Vercel KV setup.
+
+```
+api/
+├── _kv.js               Upstash/Vercel KV REST client (plain fetch, no deps)
+├── _store.js             Seed data + get/save/create-bathroom helpers
+├── bathrooms.js           GET (list) / POST (publish)
+└── bathrooms/[id]/
+    ├── vote.js             POST (upvote)
+    └── flag.js             POST (flag as stale)
+```

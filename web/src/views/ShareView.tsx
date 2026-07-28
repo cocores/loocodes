@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation, type Coordinate } from "../hooks/useLocation";
-import { BATHROOM_TYPES, CURRENT_USER, type Bathroom, type BathroomTypeId } from "../types";
+import { BATHROOM_TYPES, type NewBathroom, type BathroomTypeId } from "../types";
 import { FilterChip } from "../components/FilterChip";
 import { FormField } from "../components/FormField";
 import { PinMap } from "../components/PinMap";
 import { CodeBadge } from "../components/Badges";
 import { Switch } from "../components/Switch";
+import { getUserId } from "../lib/anonymousUser";
 import "./ShareView.css";
 
 type InputMode = "gps" | "pin" | "address";
@@ -37,7 +38,8 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishStep, setPublishStep] = useState(0);
   const [published, setPublished] = useState(false);
-  const [newBathroom, setNewBathroom] = useState<Bathroom | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [newBathroom, setNewBathroom] = useState<NewBathroom | null>(null);
   const timers = useRef<number[]>([]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -50,8 +52,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
     else if (inputMode === "pin") coord = droppedPin ?? DEFAULT_CENTER;
     else coord = DEFAULT_CENTER;
 
-    const bathroom: Bathroom = {
-      id: crypto.randomUUID(),
+    const bathroom: NewBathroom = {
       name,
       address: address || "Shared location",
       code,
@@ -62,15 +63,11 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
       note,
       latitude: coord.latitude,
       longitude: coord.longitude,
-      submittedBy: CURRENT_USER,
-      isVerified: false,
-      upvoteCount: 0,
-      rating: 0,
-      hasVotedUp: false,
-      hasFlagged: false,
+      submittedBy: getUserId(),
     };
 
     setNewBathroom(bathroom);
+    setPublishError(null);
     setIsPublishing(true);
     setPublishStep(0);
 
@@ -79,17 +76,22 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
       timers.current.push(id);
     });
 
-    const finalId = window.setTimeout(() => {
-      add(bathroom);
-      setPublished(true);
-      setName("");
-      setCode("");
-      setNote("");
-      setAddress("");
-      setIsFree(true);
-      setIsADA(false);
-      setDroppedPin(null);
-      setFeeAmount("");
+    const finalId = window.setTimeout(async () => {
+      try {
+        await add(bathroom);
+        setPublished(true);
+        setName("");
+        setCode("");
+        setNote("");
+        setAddress("");
+        setIsFree(true);
+        setIsADA(false);
+        setDroppedPin(null);
+        setFeeAmount("");
+      } catch (err) {
+        setIsPublishing(false);
+        setPublishError(err instanceof Error ? err.message : "Failed to publish code");
+      }
     }, (PUBLISH_STEPS.length + 1) * 750);
     timers.current.push(finalId);
   };
@@ -230,6 +232,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
         >
           Share Code
         </button>
+        {publishError && <p className="share-view__error">⚠ {publishError}</p>}
       </div>
 
       {(isPublishing || published) && (
@@ -259,7 +262,7 @@ function PublishOverlay({
   steps: string[];
   currentStep: number;
   published: boolean;
-  bathroom: Bathroom | null;
+  bathroom: NewBathroom | null;
   onViewList: () => void;
 }) {
   return (

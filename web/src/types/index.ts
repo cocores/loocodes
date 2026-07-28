@@ -45,4 +45,19 @@ export interface Bathroom {
   hasFlagged: boolean;
 }
 
-export const CURRENT_USER = "current_user";
+// What the client sends when publishing — the server assigns id and the
+// remaining aggregate/moderation fields.
+export type NewBathroom = Pick<
+  Bathroom,
+  | "name"
+  | "address"
+  | "code"
+  | "type"
+  | "isADAAccessible"
+  | "isFree"
+  | "feeAmount"
+  | "note"
+  | "latitude"
+  | "longitude"
+  | "submittedBy"
+>;

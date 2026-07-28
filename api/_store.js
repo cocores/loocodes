@@ -1,6 +1,11 @@
-import type { Bathroom } from "../types";
+const { kvCommand } = require("./_kv");
 
-export const SEED_BATHROOMS: Bathroom[] = [
+const KEY = "loocodes:bathrooms";
+
+const BATHROOM_TYPES = ["cafe", "restaurant", "publicRestroom", "gasStation", "store", "park"];
+
+// Mirrors web/src/store/seed.ts so a fresh KV store isn't empty on first load.
+const SEED = [
   {
     id: "seed-1",
     name: "Blue Bottle Coffee",
@@ -78,3 +83,56 @@ export const SEED_BATHROOMS: Bathroom[] = [
     hasFlagged: false,
   },
 ];
+
+async function getAll() {
+  const raw = await kvCommand(["GET", KEY]);
+  if (!raw) {
+    await kvCommand(["SET", KEY, JSON.stringify(SEED)]);
+    return SEED;
+  }
+  return JSON.parse(raw);
+}
+
+async function saveAll(bathrooms) {
+  await kvCommand(["SET", KEY, JSON.stringify(bathrooms)]);
+}
+
+function sanitizeText(value, maxLength) {
+  return String(value ?? "").slice(0, maxLength).trim();
+}
+
+function createBathroom(input) {
+  if (!BATHROOM_TYPES.includes(input.type)) {
+    throw new Error(`Invalid bathroom type: ${input.type}`);
+  }
+  const name = sanitizeText(input.name, 200);
+  if (!name) throw new Error("Name is required");
+
+  const latitude = Number(input.latitude);
+  const longitude = Number(input.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error("Valid latitude/longitude are required");
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    name,
+    address: sanitizeText(input.address, 300) || "Shared location",
+    code: sanitizeText(input.code, 50),
+    type: input.type,
+    isADAAccessible: Boolean(input.isADAAccessible),
+    isFree: Boolean(input.isFree),
+    feeAmount: sanitizeText(input.feeAmount, 30),
+    note: sanitizeText(input.note, 500),
+    latitude,
+    longitude,
+    submittedBy: sanitizeText(input.submittedBy, 100) || "anonymous",
+    isVerified: false,
+    upvoteCount: 0,
+    rating: 0,
+    hasVotedUp: false,
+    hasFlagged: false,
+  };
+}
+
+module.exports = { getAll, saveAll, createBathroom };

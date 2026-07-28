@@ -9,7 +9,7 @@ import { BathroomDetailSheet } from "./BathroomDetailSheet";
 import "./BathroomListView.css";
 
 export function BathroomListView() {
-  const { bathrooms } = useBathroomStore();
+  const { bathrooms, isLoading } = useBathroomStore();
   const { distanceTo } = useLocation();
   const [selectedType, setSelectedType] = useState<BathroomTypeId | null>(null);
   const [adaOnly, setAdaOnly] = useState(false);
@@ -53,7 +53,12 @@ export function BathroomListView() {
         {filtered.length} Location{filtered.length === 1 ? "" : "s"} Found
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="list-view__empty">
+          <span className="list-view__empty-icon">🚽</span>
+          <p>Loading…</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="list-view__empty">
           <span className="list-view__empty-icon">🚽</span>
           <p>No bathrooms found</p>

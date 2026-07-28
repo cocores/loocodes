@@ -36,3 +36,17 @@
 .app__tab--active {
   color: var(--blue);
 }
+
+.app__offline-banner {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--orange);
+  background: var(--orange-bg);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.app__offline-banner code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

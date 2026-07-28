@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BathroomStoreProvider } from "./store/BathroomStoreContext";
+import { BathroomStoreProvider, useBathroomStore } from "./store/BathroomStoreContext";
 import { ShareView } from "./views/ShareView";
 import { BathroomListView } from "./views/BathroomListView";
 import { ProfileView } from "./views/ProfileView";
@@ -19,6 +19,7 @@ function App() {
   return (
     <BathroomStoreProvider>
       <div className="app">
+        <OfflineBanner />
         <main className="app__content">
           <div style={{ display: tab === "share" ? "block" : "none" }}>
             <ShareView onViewList={() => setTab("nearby")} />
@@ -46,6 +47,17 @@ function App() {
         </nav>
       </div>
     </BathroomStoreProvider>
+  );
+}
+
+function OfflineBanner() {
+  const { isOffline } = useBathroomStore();
+  if (!isOffline) return null;
+  return (
+    <div className="app__offline-banner">
+      Public sharing isn't set up yet — codes are only saved in this browser. See{" "}
+      <code>web/README.md</code> for KV setup.
+    </div>
   );
 }
 
