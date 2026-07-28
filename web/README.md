@@ -36,7 +36,8 @@ src/
 ├── views/                  BathroomListView, BathroomDetailSheet, ShareView,
 │                           ProfileView, SettingsViews
 └── components/             FilterChip, badges, StarRating, FormField, Switch,
-                            PinMap (Google Maps view for the Share flow's pin-drop mode)
+                            PinMap (Google Maps view for pin-drop mode),
+                            AddressAutocomplete (Google Places predictions)
 ```
 
 ## Public sharing (Vercel KV)
@@ -65,10 +66,17 @@ up whichever pair of env vars Vercel provides.
 
 ## Google Maps setup
 
-The Share flow's "Drop Pin" map (`src/components/PinMap.tsx`) uses the Google
-Maps JavaScript API. Without a key configured, that map shows a "no key
-configured" message instead of crashing — GPS and Address location modes are
-unaffected.
+Two features use the Google Maps JavaScript API and share the same key:
+
+- The Share flow's **Drop Pin** map (`src/components/PinMap.tsx`).
+- **Address** mode's predictive autocomplete-as-you-type
+  (`src/components/AddressAutocomplete.tsx`), which also resolves the
+  selected suggestion to real coordinates (previously a placeholder).
+
+Without a key configured, both degrade gracefully — Drop Pin shows a "no key
+configured" message, Address mode falls back to a plain text field with a
+small "predictions unavailable" hint — rather than crashing. GPS mode is
+unaffected either way.
 
 1. **Create/select a project** at
    [console.cloud.google.com](https://console.cloud.google.com/).
@@ -76,13 +84,16 @@ unaffected.
    free-tier usage — Maps Platform includes a recurring $200/month credit
    that covers typical small-app usage, so a hobby project like this
    shouldn't actually be charged.
-3. **APIs & Services → Library** → enable the **Maps JavaScript API**.
+3. **APIs & Services → Library** → enable both:
+   - **Maps JavaScript API** (Drop Pin map)
+   - **Places API (New)** (address autocomplete + geocoding)
 4. **APIs & Services → Credentials → Create Credentials → API key.**
 5. **Restrict the key** (click into it after creating):
    - *Application restrictions* → **Websites** → add your Vercel domain(s),
      e.g. `https://your-app.vercel.app/*`, plus `http://localhost:5173/*` if
      you want it working under `npm run dev` too.
-   - *API restrictions* → restrict to **Maps JavaScript API** only.
+   - *API restrictions* → restrict to **Maps JavaScript API** and
+     **Places API (New)**.
 
    This key is meant to be public (it ships in the built JS bundle) — the
    website restriction is what keeps other sites from using your quota, not
@@ -92,3 +103,8 @@ unaffected.
    - On Vercel: Project Settings → Environment Variables → add
      `VITE_GOOGLE_MAPS_API_KEY` for Production (and Preview/Development if
      you want it there too) → redeploy.
+
+Address autocomplete uses the newer session-token-based Places API
+(`AutocompleteSuggestion.fetchAutocompleteSuggestions`), not the legacy
+`google.maps.places.Autocomplete` widget — predictions are billed per
+session (typing + selecting counts once), not per keystroke.

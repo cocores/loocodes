@@ -1,0 +1,48 @@
+.address-autocomplete {
+  position: relative;
+}
+
+.address-autocomplete__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--card);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.address-autocomplete__option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--white);
+  border-radius: 8px;
+}
+
+.address-autocomplete__option--highlighted {
+  background: var(--border);
+}
+
+.address-autocomplete__hint,
+.address-autocomplete__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.address-autocomplete__hint {
+  color: var(--muted);
+}
+
+.address-autocomplete__error {
+  color: var(--flag);
+}

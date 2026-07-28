@@ -22,9 +22,11 @@ export function loadGoogleMaps(): Promise<typeof google.maps> {
     optionsSet = true;
   }
   if (!loadPromise) {
-    loadPromise = Promise.all([importLibrary("maps"), importLibrary("marker")]).then(
-      () => google.maps,
-    );
+    loadPromise = Promise.all([
+      importLibrary("maps"),
+      importLibrary("marker"),
+      importLibrary("places"),
+    ]).then(() => google.maps);
   }
   return loadPromise;
 }

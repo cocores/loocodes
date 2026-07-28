@@ -5,6 +5,7 @@ import { BATHROOM_TYPES, type NewBathroom, type BathroomTypeId } from "../types"
 import { FilterChip } from "../components/FilterChip";
 import { FormField } from "../components/FormField";
 import { PinMap } from "../components/PinMap";
+import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { CodeBadge } from "../components/Badges";
 import { Switch } from "../components/Switch";
 import { getUserId } from "../lib/anonymousUser";
@@ -33,6 +34,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
   const [note, setNote] = useState("");
   const [inputMode, setInputMode] = useState<InputMode>("gps");
   const [address, setAddress] = useState("");
+  const [addressCoordinate, setAddressCoordinate] = useState<Coordinate | null>(null);
   const [droppedPin, setDroppedPin] = useState<Coordinate | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
@@ -50,7 +52,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
     let coord: Coordinate;
     if (inputMode === "gps") coord = location ?? DEFAULT_CENTER;
     else if (inputMode === "pin") coord = droppedPin ?? DEFAULT_CENTER;
-    else coord = DEFAULT_CENTER;
+    else coord = addressCoordinate ?? DEFAULT_CENTER;
 
     const bathroom: NewBathroom = {
       name,
@@ -84,6 +86,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
         setCode("");
         setNote("");
         setAddress("");
+        setAddressCoordinate(null);
         setIsFree(true);
         setIsADA(false);
         setDroppedPin(null);
@@ -205,12 +208,25 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
           )}
 
           {inputMode === "address" && (
-            <input
-              className="dark-input"
-              placeholder="Enter full address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
+            <>
+              <AddressAutocomplete
+                value={address}
+                placeholder="Enter full address"
+                onChange={(next) => {
+                  setAddress(next);
+                  setAddressCoordinate(null);
+                }}
+                onSelect={(coordinate, formattedAddress) => {
+                  setAddress(formattedAddress);
+                  setAddressCoordinate(coordinate);
+                }}
+              />
+              {addressCoordinate && (
+                <div className="share-view__gps-status share-view__gps-status--ok">
+                  📍 {addressCoordinate.latitude.toFixed(5)}, {addressCoordinate.longitude.toFixed(5)}
+                </div>
+              )}
+            </>
           )}
         </FormField>
 
