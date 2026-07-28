@@ -8,14 +8,16 @@ import { StarRating } from "../components/StarRating";
 import { BathroomDetailSheet } from "./BathroomDetailSheet";
 import "./BathroomListView.css";
 
-const FURTHER_AWAY_THRESHOLD_MILES = 25;
+const CLOSE_BY_MAX_MILES = 1;
+const FURTHER_AWAY_MAX_MILES = 5;
 
 export function BathroomListView() {
   const { bathrooms, isLoading } = useBathroomStore();
-  const { distanceTo, distanceMilesTo } = useLocation();
+  const { location, distanceTo, distanceMilesTo } = useLocation();
   const [selectedType, setSelectedType] = useState<BathroomTypeId | null>(null);
   const [adaOnly, setAdaOnly] = useState(false);
   const [selected, setSelected] = useState<Bathroom | null>(null);
+  const [farAwayExpanded, setFarAwayExpanded] = useState(false);
 
   const filtered = useMemo(
     () =>
@@ -25,16 +27,21 @@ export function BathroomListView() {
     [bathrooms, selectedType, adaOnly],
   );
 
-  const { nearby, further } = useMemo(() => {
-    const nearby: Bathroom[] = [];
-    const further: Bathroom[] = [];
+  // Distance is either known for every bathroom (location resolved) or unknown
+  // for all of them (no location yet) — so grouping is all-or-nothing.
+  const grouped = useMemo(() => {
+    if (!location) return null;
+    const closeBy: Bathroom[] = [];
+    const furtherAway: Bathroom[] = [];
+    const farAway: Bathroom[] = [];
     for (const b of filtered) {
-      const miles = distanceMilesTo(b);
-      // Unknown distance (no location permission yet) stays in the main list.
-      (miles !== null && miles >= FURTHER_AWAY_THRESHOLD_MILES ? further : nearby).push(b);
+      const miles = distanceMilesTo(b) ?? 0;
+      if (miles < CLOSE_BY_MAX_MILES) closeBy.push(b);
+      else if (miles < FURTHER_AWAY_MAX_MILES) furtherAway.push(b);
+      else farAway.push(b);
     }
-    return { nearby, further };
-  }, [filtered, distanceMilesTo]);
+    return { closeBy, furtherAway, farAway };
+  }, [filtered, location, distanceMilesTo]);
 
   return (
     <div className="screen list-view">
@@ -77,28 +84,21 @@ export function BathroomListView() {
           <p>No bathrooms found</p>
           <span>Try a different filter</span>
         </div>
+      ) : grouped === null ? (
+        <div className="list-view__cards">
+          {filtered.map((b) => (
+            <BathroomCard key={b.id} bathroom={b} distance={distanceTo(b)} onOpen={() => setSelected(b)} />
+          ))}
+        </div>
       ) : (
         <>
-          {nearby.length > 0 && (
-            <div className="list-view__cards">
-              {nearby.map((b) => (
-                <BathroomCard
-                  key={b.id}
-                  bathroom={b}
-                  distance={distanceTo(b)}
-                  onOpen={() => setSelected(b)}
-                />
-              ))}
-            </div>
-          )}
-
-          {further.length > 0 && (
+          {grouped.closeBy.length > 0 && (
             <>
               <div className="list-view__section-divider">
-                <span>Further Away</span>
+                <span>Close By</span>
               </div>
               <div className="list-view__cards">
-                {further.map((b) => (
+                {grouped.closeBy.map((b) => (
                   <BathroomCard
                     key={b.id}
                     bathroom={b}
@@ -107,6 +107,54 @@ export function BathroomListView() {
                   />
                 ))}
               </div>
+            </>
+          )}
+
+          {grouped.furtherAway.length > 0 && (
+            <>
+              <div className="list-view__section-divider">
+                <span>Further Away</span>
+              </div>
+              <div className="list-view__cards">
+                {grouped.furtherAway.map((b) => (
+                  <BathroomCard
+                    key={b.id}
+                    bathroom={b}
+                    distance={distanceTo(b)}
+                    onOpen={() => setSelected(b)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {grouped.farAway.length > 0 && (
+            <>
+              <button
+                type="button"
+                className="list-view__section-divider list-view__section-divider--collapsible"
+                onClick={() => setFarAwayExpanded((v) => !v)}
+                aria-expanded={farAwayExpanded}
+              >
+                <span>
+                  Far Away ({grouped.farAway.length})
+                </span>
+                <span className="list-view__section-chevron" data-expanded={farAwayExpanded}>
+                  ›
+                </span>
+              </button>
+              {farAwayExpanded && (
+                <div className="list-view__cards">
+                  {grouped.farAway.map((b) => (
+                    <BathroomCard
+                      key={b.id}
+                      bathroom={b}
+                      distance={distanceTo(b)}
+                      onOpen={() => setSelected(b)}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           )}
         </>
