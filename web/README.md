@@ -36,7 +36,7 @@ src/
 ├── views/                  BathroomListView, BathroomDetailSheet, ShareView,
 │                           ProfileView, SettingsViews
 └── components/             FilterChip, badges, StarRating, FormField, Switch,
-                            PinMap (Leaflet map for the Share flow's pin-drop mode)
+                            PinMap (Google Maps view for the Share flow's pin-drop mode)
 ```
 
 ## Public sharing (Vercel KV)
@@ -62,3 +62,33 @@ To turn on public sharing on Vercel:
 
 No code changes or manual env var entry needed — the API (`api/_kv.js`) picks
 up whichever pair of env vars Vercel provides.
+
+## Google Maps setup
+
+The Share flow's "Drop Pin" map (`src/components/PinMap.tsx`) uses the Google
+Maps JavaScript API. Without a key configured, that map shows a "no key
+configured" message instead of crashing — GPS and Address location modes are
+unaffected.
+
+1. **Create/select a project** at
+   [console.cloud.google.com](https://console.cloud.google.com/).
+2. **Enable billing** on the project. This is required by Google even for
+   free-tier usage — Maps Platform includes a recurring $200/month credit
+   that covers typical small-app usage, so a hobby project like this
+   shouldn't actually be charged.
+3. **APIs & Services → Library** → enable the **Maps JavaScript API**.
+4. **APIs & Services → Credentials → Create Credentials → API key.**
+5. **Restrict the key** (click into it after creating):
+   - *Application restrictions* → **Websites** → add your Vercel domain(s),
+     e.g. `https://your-app.vercel.app/*`, plus `http://localhost:5173/*` if
+     you want it working under `npm run dev` too.
+   - *API restrictions* → restrict to **Maps JavaScript API** only.
+
+   This key is meant to be public (it ships in the built JS bundle) — the
+   website restriction is what keeps other sites from using your quota, not
+   secrecy.
+6. **Add it as an env var** named `VITE_GOOGLE_MAPS_API_KEY`:
+   - Locally: copy `.env.example` to `.env.local` and paste the key in.
+   - On Vercel: Project Settings → Environment Variables → add
+     `VITE_GOOGLE_MAPS_API_KEY` for Production (and Preview/Development if
+     you want it there too) → redeploy.
