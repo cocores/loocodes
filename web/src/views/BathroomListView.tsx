@@ -1,10 +1,18 @@
 import { useMemo, useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation } from "../hooks/useLocation";
-import { BATHROOM_TYPES, type Bathroom, type BathroomTypeId } from "../types";
+import { BATHROOM_TYPES, isReportedStale, type Bathroom, type BathroomTypeId } from "../types";
 import { FilterChip } from "../components/FilterChip";
-import { ADABadge, CodeBadge, DistanceBadge, PriceBadge, TypeBadge } from "../components/Badges";
+import {
+  ADABadge,
+  CodeBadge,
+  DistanceBadge,
+  PriceBadge,
+  ReportedStaleBadge,
+  TypeBadge,
+} from "../components/Badges";
 import { StarRating } from "../components/StarRating";
+import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import { BathroomDetailSheet } from "./BathroomDetailSheet";
 import "./BathroomListView.css";
 
@@ -175,7 +183,9 @@ function BathroomCard({
   onOpen: () => void;
 }) {
   const { voteUp, flag } = useBathroomStore();
-  const disableVotes = bathroom.hasVotedUp || bathroom.hasFlagged;
+  const alreadyFlagged = hasFlaggedLocally(bathroom.id);
+  const voteDisabled = bathroom.hasVotedUp || alreadyFlagged;
+  const flagDisabled = alreadyFlagged || bathroom.hasVotedUp;
 
   return (
     <div className="bathroom-card" onClick={onOpen} role="button" tabIndex={0}>
@@ -197,6 +207,7 @@ function BathroomCard({
         <CodeBadge code={bathroom.code} isFreeNoCode={bathroom.isFree && !bathroom.code} />
         {bathroom.isADAAccessible && <ADABadge />}
         <PriceBadge isFree={bathroom.isFree} feeAmount={bathroom.feeAmount} />
+        {isReportedStale(bathroom) && <ReportedStaleBadge />}
       </div>
 
       <div className="bathroom-card__rating">
@@ -217,16 +228,16 @@ function BathroomCard({
         <button
           type="button"
           className={`bathroom-card__vote ${bathroom.hasVotedUp ? "bathroom-card__vote--active" : ""}`}
-          disabled={disableVotes}
-          style={{ opacity: bathroom.hasFlagged ? 0.3 : 1 }}
+          disabled={voteDisabled}
+          style={{ opacity: alreadyFlagged ? 0.3 : 1 }}
           onClick={() => voteUp(bathroom.id)}
         >
           {bathroom.hasVotedUp ? "✓ Works!" : "It Works"}
         </button>
         <button
           type="button"
-          className={`bathroom-card__flag ${bathroom.hasFlagged ? "bathroom-card__flag--active" : ""}`}
-          disabled={disableVotes}
+          className={`bathroom-card__flag ${alreadyFlagged ? "bathroom-card__flag--active" : ""}`}
+          disabled={flagDisabled}
           style={{ opacity: bathroom.hasVotedUp ? 0.3 : 1 }}
           onClick={() => flag(bathroom.id)}
           aria-label="Flag stale"

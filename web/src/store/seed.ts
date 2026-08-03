@@ -18,7 +18,7 @@ export const SEED_BATHROOMS: Bathroom[] = [
     upvoteCount: 42,
     rating: 4.5,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
   {
     id: "seed-2",
@@ -37,7 +37,7 @@ export const SEED_BATHROOMS: Bathroom[] = [
     upvoteCount: 128,
     rating: 4.8,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
   {
     id: "seed-3",
@@ -56,7 +56,7 @@ export const SEED_BATHROOMS: Bathroom[] = [
     upvoteCount: 6,
     rating: 3.2,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
   {
     id: "seed-4",
@@ -75,6 +75,6 @@ export const SEED_BATHROOMS: Bathroom[] = [
     upvoteCount: 19,
     rating: 4.1,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
 ];

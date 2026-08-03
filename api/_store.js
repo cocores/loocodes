@@ -23,7 +23,7 @@ const SEED = [
     upvoteCount: 42,
     rating: 4.5,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
   {
     id: "seed-2",
@@ -42,7 +42,7 @@ const SEED = [
     upvoteCount: 128,
     rating: 4.8,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
   {
     id: "seed-3",
@@ -61,7 +61,7 @@ const SEED = [
     upvoteCount: 6,
     rating: 3.2,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
   {
     id: "seed-4",
@@ -80,9 +80,18 @@ const SEED = [
     upvoteCount: 19,
     rating: 4.1,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   },
 ];
+
+// Migrates records stored before flagging switched from a single global
+// boolean to a per-listing count (bathrooms already published to a live KV
+// store before this change won't have flagCount).
+function normalize(bathroom) {
+  if (typeof bathroom.flagCount === "number") return bathroom;
+  const { hasFlagged, ...rest } = bathroom;
+  return { ...rest, flagCount: hasFlagged ? 1 : 0 };
+}
 
 async function getAll() {
   const raw = await kvCommand(["GET", KEY]);
@@ -90,7 +99,7 @@ async function getAll() {
     await kvCommand(["SET", KEY, JSON.stringify(SEED)]);
     return SEED;
   }
-  return JSON.parse(raw);
+  return JSON.parse(raw).map(normalize);
 }
 
 async function saveAll(bathrooms) {
@@ -131,7 +140,7 @@ function createBathroom(input) {
     upvoteCount: 0,
     rating: 0,
     hasVotedUp: false,
-    hasFlagged: false,
+    flagCount: 0,
   };
 }
 

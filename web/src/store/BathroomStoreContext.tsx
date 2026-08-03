@@ -10,6 +10,7 @@ import {
 import type { Bathroom, NewBathroom } from "../types";
 import { api } from "../lib/api";
 import { getUserId } from "../lib/anonymousUser";
+import { hasFlaggedLocally, markFlaggedLocally } from "../lib/flaggedTracker";
 import { SEED_BATHROOMS } from "./seed";
 
 const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
@@ -82,7 +83,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
           upvoteCount: 0,
           rating: 0,
           hasVotedUp: false,
-          hasFlagged: false,
+          flagCount: 0,
         };
         setBathrooms((prev) => [local, ...prev]);
         return;
@@ -115,13 +116,19 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   const flag = useCallback(
     async (id: string) => {
+      if (hasFlaggedLocally(id)) return;
+
       if (isOffline) {
-        setBathrooms((prev) => prev.map((b) => (b.id === id ? { ...b, hasFlagged: true } : b)));
+        setBathrooms((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, flagCount: b.flagCount + 1 } : b)),
+        );
+        markFlaggedLocally(id);
         return;
       }
       try {
         const updated = await api.flag(id);
         setBathrooms((prev) => prev.map((b) => (b.id === id ? updated : b)));
+        markFlaggedLocally(id);
       } catch (err) {
         console.error("Failed to flag bathroom", err);
       }

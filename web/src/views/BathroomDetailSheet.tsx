@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation } from "../hooks/useLocation";
-import type { Bathroom } from "../types";
-import { ADABadge, DistanceBadge, PriceBadge, TypeBadge } from "../components/Badges";
+import { isReportedStale, type Bathroom } from "../types";
+import { ADABadge, DistanceBadge, PriceBadge, ReportedStaleBadge, TypeBadge } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
+import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import "./BathroomDetailSheet.css";
 
 export function BathroomDetailSheet({
@@ -18,7 +19,9 @@ export function BathroomDetailSheet({
   const [copied, setCopied] = useState(false);
 
   const current = bathrooms.find((b) => b.id === bathroom.id) ?? bathroom;
-  const disableVotes = current.hasVotedUp || current.hasFlagged;
+  const alreadyFlagged = hasFlaggedLocally(current.id);
+  const voteDisabled = current.hasVotedUp || alreadyFlagged;
+  const flagDisabled = alreadyFlagged || current.hasVotedUp;
 
   const copyCode = async () => {
     try {
@@ -69,6 +72,7 @@ export function BathroomDetailSheet({
             <TypeBadge type={current.type} />
             {current.isADAAccessible && <ADABadge />}
             <PriceBadge isFree={current.isFree} feeAmount={current.feeAmount} />
+            {isReportedStale(current) && <ReportedStaleBadge />}
           </div>
 
           <div className={`detail__accessibility ${current.isADAAccessible ? "detail__accessibility--yes" : ""}`}>
@@ -97,20 +101,20 @@ export function BathroomDetailSheet({
             <button
               type="button"
               className={`detail__vote ${current.hasVotedUp ? "detail__vote--active" : ""}`}
-              disabled={disableVotes}
-              style={{ opacity: current.hasFlagged ? 0.3 : 1 }}
+              disabled={voteDisabled}
+              style={{ opacity: alreadyFlagged ? 0.3 : 1 }}
               onClick={() => voteUp(current.id)}
             >
               {current.hasVotedUp ? "✓ Works!" : "👍 It Works"}
             </button>
             <button
               type="button"
-              className={`detail__flag ${current.hasFlagged ? "detail__flag--active" : ""}`}
-              disabled={disableVotes}
+              className={`detail__flag ${alreadyFlagged ? "detail__flag--active" : ""}`}
+              disabled={flagDisabled}
               style={{ opacity: current.hasVotedUp ? 0.3 : 1 }}
               onClick={() => flag(current.id)}
             >
-              {current.hasFlagged ? "🚩 Flagged" : "🚩 Flag Stale"}
+              {alreadyFlagged ? "🚩 Flagged" : "🚩 Flag Stale"}
             </button>
           </div>
 

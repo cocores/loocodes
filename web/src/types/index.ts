@@ -42,7 +42,15 @@ export interface Bathroom {
   upvoteCount: number;
   rating: number;
   hasVotedUp: boolean;
-  hasFlagged: boolean;
+  flagCount: number;
+}
+
+// Once a listing collects this many flags, it's shown as "Reported stale"
+// (still visible and votable — flags are a signal, not a takedown).
+export const FLAG_THRESHOLD = 3;
+
+export function isReportedStale(bathroom: Pick<Bathroom, "flagCount">): boolean {
+  return bathroom.flagCount >= FLAG_THRESHOLD;
 }
 
 // What the client sends when publishing — the server assigns id and the

@@ -29,3 +29,7 @@ export function PriceBadge({ isFree, feeAmount }: { isFree: boolean; feeAmount: 
 export function DistanceBadge({ text }: { text: string }) {
   return <span className="badge badge--muted">{text}</span>;
 }
+
+export function ReportedStaleBadge() {
+  return <span className="badge badge--flag">⚠ Reported Stale</span>;
+}

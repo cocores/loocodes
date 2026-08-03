@@ -36,3 +36,8 @@
   color: var(--muted);
   background: var(--card);
 }
+
+.badge--flag {
+  color: var(--flag);
+  background: var(--flag-bg);
+}

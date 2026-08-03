@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    bathrooms[index] = { ...bathrooms[index], hasFlagged: true };
+    bathrooms[index] = { ...bathrooms[index], flagCount: bathrooms[index].flagCount + 1 };
     await saveAll(bathrooms);
     res.status(200).json(bathrooms[index]);
   } catch (err) {
