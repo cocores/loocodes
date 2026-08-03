@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useBathroomStore } from "../store/BathroomStoreContext";
 import { Switch } from "../components/Switch";
 import "./SettingsViews.css";
 
@@ -89,11 +90,18 @@ export function NotificationPrefsView({ onBack }: SubScreenProps) {
 }
 
 export function PrivacySettingsView({ onBack }: SubScreenProps) {
+  const { resetAccount } = useBathroomStore();
   const [preciseLocation, setPreciseLocation] = useState(true);
   const [backgroundLocation, setBackgroundLocation] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [personalized, setPersonalized] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const confirmDelete = () => {
+    resetAccount();
+    setShowDeleteConfirm(false);
+    onBack();
+  };
 
   return (
     <div className="screen sub-screen">
@@ -118,7 +126,7 @@ export function PrivacySettingsView({ onBack }: SubScreenProps) {
           className="sub-screen__destructive"
           onClick={() => setShowDeleteConfirm(true)}
         >
-          🗑 Delete Account & Data
+          🗑 Delete Account
         </button>
         <p className="sub-screen__footer">
           LooCodes never sells your data. Location is used only to find nearby bathrooms.
@@ -130,17 +138,14 @@ export function PrivacySettingsView({ onBack }: SubScreenProps) {
           <div className="alert" onClick={(e) => e.stopPropagation()}>
             <div className="alert__title">Delete Account?</div>
             <div className="alert__message">
-              This permanently deletes your account and all codes you've shared.
+              This resets your account on this device. Codes you've already shared stay public
+              for others to use — they just won't show under "My Codes" anymore.
             </div>
             <div className="alert__actions">
               <button type="button" onClick={() => setShowDeleteConfirm(false)}>
                 Cancel
               </button>
-              <button
-                type="button"
-                className="alert__destructive"
-                onClick={() => setShowDeleteConfirm(false)}
-              >
+              <button type="button" className="alert__destructive" onClick={confirmDelete}>
                 Delete
               </button>
             </div>

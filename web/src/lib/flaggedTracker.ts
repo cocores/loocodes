@@ -19,3 +19,7 @@ export function markFlaggedLocally(id: string): void {
   ids.add(id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
 }
+
+export function clearFlaggedLocally(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}

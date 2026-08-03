@@ -9,8 +9,8 @@ import {
 } from "react";
 import type { Bathroom, NewBathroom } from "../types";
 import { api } from "../lib/api";
-import { getUserId } from "../lib/anonymousUser";
-import { hasFlaggedLocally, markFlaggedLocally } from "../lib/flaggedTracker";
+import { getUserId, resetUserId } from "../lib/anonymousUser";
+import { clearFlaggedLocally, hasFlaggedLocally, markFlaggedLocally } from "../lib/flaggedTracker";
 import { SEED_BATHROOMS } from "./seed";
 
 const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
@@ -35,6 +35,10 @@ interface BathroomStoreValue {
   add: (bathroom: NewBathroom) => Promise<void>;
   voteUp: (id: string) => Promise<void>;
   flag: (id: string) => Promise<void>;
+  /** Forgets this browser's local identity (new anon id, cleared flag history).
+   * Does NOT touch any shared code data — codes already published stay public,
+   * they just stop showing under "My Codes" for this browser. */
+  resetAccount: () => void;
 }
 
 const BathroomStoreContext = createContext<BathroomStoreValue | null>(null);
@@ -44,6 +48,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [offlineReason, setOfflineReason] = useState<string | null>(null);
+  const [userId, setUserId] = useState(getUserId);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,14 +141,29 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
     [isOffline],
   );
 
-  const myCodes = useMemo(() => {
-    const userId = getUserId();
-    return bathrooms.filter((b) => b.submittedBy === userId);
-  }, [bathrooms]);
+  const myCodes = useMemo(
+    () => bathrooms.filter((b) => b.submittedBy === userId),
+    [bathrooms, userId],
+  );
+
+  const resetAccount = useCallback(() => {
+    clearFlaggedLocally();
+    setUserId(resetUserId());
+  }, []);
 
   const value = useMemo(
-    () => ({ bathrooms, myCodes, isLoading, isOffline, offlineReason, add, voteUp, flag }),
-    [bathrooms, myCodes, isLoading, isOffline, offlineReason, add, voteUp, flag],
+    () => ({
+      bathrooms,
+      myCodes,
+      isLoading,
+      isOffline,
+      offlineReason,
+      add,
+      voteUp,
+      flag,
+      resetAccount,
+    }),
+    [bathrooms, myCodes, isLoading, isOffline, offlineReason, add, voteUp, flag, resetAccount],
   );
 
   return <BathroomStoreContext.Provider value={value}>{children}</BathroomStoreContext.Provider>;
