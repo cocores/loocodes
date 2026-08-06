@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation } from "../hooks/useLocation";
 import { BATHROOM_TYPES, isReportedStale, type Bathroom, type BathroomTypeId } from "../types";
@@ -35,6 +35,13 @@ export function BathroomListView() {
   const [adaOnly, setAdaOnly] = useState(false);
   const [selected, setSelected] = useState<Bathroom | null>(null);
   const [farAwayExpanded, setFarAwayExpanded] = useState(false);
+  const farAwayCardsRef = useRef<HTMLDivElement>(null);
+
+  // The revealed cards can land below the fold with nothing to draw the eye
+  // to them — scroll them into view so expanding visibly does something.
+  useEffect(() => {
+    if (farAwayExpanded) farAwayCardsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [farAwayExpanded]);
 
   const filtered = useMemo(
     () =>
@@ -167,7 +174,7 @@ export function BathroomListView() {
                 </span>
               </button>
               {farAwayExpanded && (
-                <div className="list-view__cards">
+                <div className="list-view__cards list-view__cards--reveal" ref={farAwayCardsRef}>
                   {grouped.farAway.map((b) => (
                     <BathroomCard
                       key={b.id}
