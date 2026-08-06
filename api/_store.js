@@ -4,6 +4,8 @@ const KEY = "loocodes:bathrooms";
 
 const BATHROOM_TYPES = ["cafe", "restaurant", "publicRestroom", "gasStation", "store", "park"];
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 // Mirrors web/src/store/seed.ts so a fresh KV store isn't empty on first load.
 const SEED = [
   {
@@ -24,6 +26,8 @@ const SEED = [
     rating: 4.5,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 2 * DAY_MS,
+    suggestions: [],
   },
   {
     id: "seed-2",
@@ -43,6 +47,8 @@ const SEED = [
     rating: 4.8,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 10 * DAY_MS,
+    suggestions: [],
   },
   {
     id: "seed-3",
@@ -62,6 +68,8 @@ const SEED = [
     rating: 3.2,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 60 * DAY_MS,
+    suggestions: [],
   },
   {
     id: "seed-4",
@@ -81,16 +89,23 @@ const SEED = [
     rating: 4.1,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 20 * DAY_MS,
+    suggestions: [],
   },
 ];
 
 // Migrates records stored before flagging switched from a single global
-// boolean to a per-listing count (bathrooms already published to a live KV
-// store before this change won't have flagCount).
+// boolean to a per-listing count, and before trust score / suggestions
+// existed (bathrooms already published to a live KV store before those
+// changes won't have flagCount / lastConfirmedAt / suggestions).
 function normalize(bathroom) {
-  if (typeof bathroom.flagCount === "number") return bathroom;
   const { hasFlagged, ...rest } = bathroom;
-  return { ...rest, flagCount: hasFlagged ? 1 : 0 };
+  return {
+    ...rest,
+    flagCount: typeof bathroom.flagCount === "number" ? bathroom.flagCount : hasFlagged ? 1 : 0,
+    lastConfirmedAt: typeof bathroom.lastConfirmedAt === "number" ? bathroom.lastConfirmedAt : 0,
+    suggestions: Array.isArray(bathroom.suggestions) ? bathroom.suggestions : [],
+  };
 }
 
 async function getAll() {
@@ -123,6 +138,9 @@ function createBathroom(input) {
     throw new Error("Valid latitude/longitude are required");
   }
 
+  const rating = Number(input.rating);
+  const clampedRating = Number.isFinite(rating) ? Math.min(5, Math.max(1, rating)) : 3;
+
   return {
     id: crypto.randomUUID(),
     name,
@@ -138,10 +156,24 @@ function createBathroom(input) {
     submittedBy: sanitizeText(input.submittedBy, 100) || "anonymous",
     isVerified: false,
     upvoteCount: 0,
-    rating: 0,
+    rating: clampedRating,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now(),
+    suggestions: [],
   };
 }
 
-module.exports = { getAll, saveAll, createBathroom };
+function createSuggestion(input) {
+  const text = sanitizeText(input.text, 500);
+  if (!text) throw new Error("Suggestion text is required");
+
+  return {
+    id: crypto.randomUUID(),
+    text,
+    submittedBy: sanitizeText(input.submittedBy, 100) || "anonymous",
+    createdAt: Date.now(),
+  };
+}
+
+module.exports = { getAll, saveAll, createBathroom, createSuggestion };

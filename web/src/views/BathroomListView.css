@@ -178,6 +178,13 @@
   color: var(--muted);
 }
 
+.bathroom-card__meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .bathroom-card__note {
   display: flex;
   align-items: flex-start;

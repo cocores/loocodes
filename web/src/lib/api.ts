@@ -32,4 +32,10 @@ export const api = {
   voteUp: (id: string) => request<Bathroom>(`/api/bathrooms/${id}/vote`, { method: "POST" }),
 
   flag: (id: string) => request<Bathroom>(`/api/bathrooms/${id}/flag`, { method: "POST" }),
+
+  suggest: (id: string, text: string, submittedBy: string) =>
+    request<Bathroom>(`/api/bathrooms/${id}/suggestions`, {
+      method: "POST",
+      body: JSON.stringify({ text, submittedBy }),
+    }),
 };

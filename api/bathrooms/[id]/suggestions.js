@@ -1,4 +1,4 @@
-const { getAll, saveAll } = require("../../_store");
+const { getAll, saveAll, createSuggestion } = require("../../_store");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -16,14 +16,13 @@ module.exports = async (req, res) => {
       return;
     }
 
+    const suggestion = createSuggestion(req.body || {});
     bathrooms[index] = {
       ...bathrooms[index],
-      hasVotedUp: true,
-      upvoteCount: bathrooms[index].upvoteCount + 1,
-      lastConfirmedAt: Date.now(),
+      suggestions: [...bathrooms[index].suggestions, suggestion],
     };
     await saveAll(bathrooms);
-    res.status(200).json(bathrooms[index]);
+    res.status(201).json(bathrooms[index]);
   } catch (err) {
     res.status(err.message?.startsWith("No KV store") ? 503 : 400).json({ error: err.message });
   }

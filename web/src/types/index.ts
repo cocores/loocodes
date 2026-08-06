@@ -25,6 +25,13 @@ export function bathroomType(id: BathroomTypeId): BathroomTypeInfo {
   return BATHROOM_TYPES.find((t) => t.id === id) ?? BATHROOM_TYPES[0];
 }
 
+export interface BathroomSuggestion {
+  id: string;
+  text: string;
+  submittedBy: string;
+  createdAt: number;
+}
+
 export interface Bathroom {
   id: string;
   name: string;
@@ -40,9 +47,15 @@ export interface Bathroom {
   submittedBy: string;
   isVerified: boolean;
   upvoteCount: number;
+  /** The submitter's own rough cleanliness rating, given at submission time. */
   rating: number;
   hasVotedUp: boolean;
   flagCount: number;
+  /** Epoch ms of publish, or of the most recent "It Works" confirmation. */
+  lastConfirmedAt: number;
+  /** Community-proposed corrections/updates — additive, never overwrite the
+   * original submission (see computeTrustScore / lib/trust.ts). */
+  suggestions: BathroomSuggestion[];
 }
 
 // Once a listing collects this many flags, it's shown as "Reported stale"
@@ -68,4 +81,5 @@ export type NewBathroom = Pick<
   | "latitude"
   | "longitude"
   | "submittedBy"
+  | "rating"
 >;

@@ -11,6 +11,12 @@ const EMOJIS = [
   "🚽", "🚻", "🗝", "🪠", "💧", "🏠", "📍", "⭐", "🎯", "🛡",
 ];
 
+// A lightweight stand-in for real contributor reputation: since there's no
+// login (just a per-browser id that Delete Account can reset anytime), this
+// can't be a durable trust system — it's a rough badge based on this
+// browser's current track record, not a persistent account-level score.
+const TRUSTED_CONTRIBUTOR_THRESHOLD = 10;
+
 type Screen = "profile" | "notifications" | "privacy" | "about";
 
 export function ProfileView() {
@@ -23,7 +29,10 @@ export function ProfileView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalUpvotes = myCodes.reduce((sum, b) => sum + b.upvoteCount, 0);
+  const totalFlags = myCodes.reduce((sum, b) => sum + b.flagCount, 0);
   const verifiedCount = myCodes.filter((b) => b.isVerified).length;
+  const isTrustedContributor =
+    myCodes.length > 0 && totalUpvotes - totalFlags * 2 >= TRUSTED_CONTRIBUTOR_THRESHOLD;
 
   const onFileChosen = (file: File | undefined) => {
     if (!file) return;
@@ -66,6 +75,9 @@ export function ProfileView() {
         </button>
 
         <div className="profile-view__handle">@loocodes_user</div>
+        {isTrustedContributor && (
+          <div className="profile-view__trusted-badge">🌟 Trusted Contributor</div>
+        )}
 
         <div className="profile-view__stats">
           <StatBubble value={myCodes.length} label="Shared" />

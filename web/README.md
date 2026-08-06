@@ -29,16 +29,46 @@ src/
 ├── types/                 Bathroom, BathroomType
 ├── lib/
 │   ├── api.ts             Client for the /api/bathrooms endpoints
-│   └── anonymousUser.ts   Persistent per-browser id (used for "My Codes")
+│   ├── anonymousUser.ts   Persistent per-browser id (used for "My Codes")
+│   ├── flaggedTracker.ts  Which listings this browser has already flagged
+│   ├── trust.ts           computeTrustScore — confirmations/flags/decay
+│   └── time.ts            formatRelativeTime ("Confirmed 2d ago", etc.)
 ├── store/                 BathroomStoreContext — fetches/writes through the API,
 │                          falls back to localStorage if the API is unreachable
 ├── hooks/useLocation.ts    Browser Geolocation + distance formatting
 ├── views/                  BathroomListView, BathroomDetailSheet, ShareView,
 │                           ProfileView, SettingsViews
-└── components/             FilterChip, badges, StarRating, FormField, Switch,
+└── components/             FilterChip, badges, StarRating (display), StarPicker
+                            (submission input), FormField, Switch,
                             PinMap (Google Maps view for pin-drop mode),
                             AddressAutocomplete (Google Places predictions)
 ```
+
+## Trust, confirmations & suggestions
+
+- **Cleanliness rating** is set once at submission (`StarPicker` in Share) and
+  stored as the listing's `rating` — there's no separate per-visit rating.
+- **"It Works"** both increments `upvoteCount` and refreshes
+  `lastConfirmedAt` — that's the "confirmation" the trust score and "Confirmed
+  X ago" text are based on.
+- **Trust score** (`lib/trust.ts`) isn't stored — it's computed on the fly
+  from confirmations, flags (weighted more heavily), and how long it's been
+  since the last confirmation (halves every ~90 days). It's used to sort
+  listings within each distance section (Close By / Further Away / Far Away),
+  not to gate visibility — new listings start neutral and rise as people
+  confirm them.
+- **Flagging** is a count (`flagCount`), not a takedown: a listing shows a
+  "Reported Stale" badge once it crosses `FLAG_THRESHOLD` (3) but stays fully
+  visible and votable.
+- **Suggested updates**: anyone can propose a correction from the detail
+  sheet ("+ Suggest an update"). It's appended to `suggestions` and shown
+  underneath the original listing — it never silently overwrites the
+  submitter's original fields, since there's no ownership/accounts system to
+  arbitrate conflicting edits safely.
+- **"Trusted Contributor"** badge on Profile is a rough, non-durable
+  approximation (net confirmations across your own listings) — since
+  identity here is just a resettable per-browser id (see Delete Account),
+  it can't be a real persistent reputation system.
 
 ## Public sharing (Vercel KV)
 

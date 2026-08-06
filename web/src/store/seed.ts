@@ -1,5 +1,7 @@
 import type { Bathroom } from "../types";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export const SEED_BATHROOMS: Bathroom[] = [
   {
     id: "seed-1",
@@ -19,6 +21,8 @@ export const SEED_BATHROOMS: Bathroom[] = [
     rating: 4.5,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 2 * DAY_MS,
+    suggestions: [],
   },
   {
     id: "seed-2",
@@ -38,6 +42,8 @@ export const SEED_BATHROOMS: Bathroom[] = [
     rating: 4.8,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 10 * DAY_MS,
+    suggestions: [],
   },
   {
     id: "seed-3",
@@ -57,6 +63,8 @@ export const SEED_BATHROOMS: Bathroom[] = [
     rating: 3.2,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 60 * DAY_MS,
+    suggestions: [],
   },
   {
     id: "seed-4",
@@ -76,5 +84,7 @@ export const SEED_BATHROOMS: Bathroom[] = [
     rating: 4.1,
     hasVotedUp: false,
     flagCount: 0,
+    lastConfirmedAt: Date.now() - 20 * DAY_MS,
+    suggestions: [],
   },
 ];

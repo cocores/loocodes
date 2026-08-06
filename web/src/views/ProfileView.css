@@ -68,6 +68,15 @@
   font-size: 15px;
 }
 
+.profile-view__trusted-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orange);
+  background: var(--orange-bg);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
 .profile-view__stats {
   display: flex;
   align-items: center;

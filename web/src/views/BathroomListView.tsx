@@ -13,11 +13,20 @@ import {
 } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
 import { hasFlaggedLocally } from "../lib/flaggedTracker";
+import { computeTrustScore } from "../lib/trust";
+import { formatRelativeTime } from "../lib/time";
 import { BathroomDetailSheet } from "./BathroomDetailSheet";
 import "./BathroomListView.css";
 
 const CLOSE_BY_MAX_MILES = 1;
 const FURTHER_AWAY_MAX_MILES = 5;
+
+// Freshest/most-confirmed first — this is what "sorted by trust score and
+// last confirmed date" means in practice (the decay in computeTrustScore
+// already folds recency in), applied within each distance bucket.
+function sortByTrust(list: Bathroom[]): Bathroom[] {
+  return [...list].sort((a, b) => computeTrustScore(b) - computeTrustScore(a));
+}
 
 export function BathroomListView() {
   const { bathrooms, isLoading } = useBathroomStore();
@@ -48,8 +57,14 @@ export function BathroomListView() {
       else if (miles < FURTHER_AWAY_MAX_MILES) furtherAway.push(b);
       else farAway.push(b);
     }
-    return { closeBy, furtherAway, farAway };
+    return {
+      closeBy: sortByTrust(closeBy),
+      furtherAway: sortByTrust(furtherAway),
+      farAway: sortByTrust(farAway),
+    };
   }, [filtered, location, distanceMilesTo]);
+
+  const sortedFlat = useMemo(() => sortByTrust(filtered), [filtered]);
 
   return (
     <div className="screen list-view">
@@ -94,7 +109,7 @@ export function BathroomListView() {
         </div>
       ) : grouped === null ? (
         <div className="list-view__cards">
-          {filtered.map((b) => (
+          {sortedFlat.map((b) => (
             <BathroomCard key={b.id} bathroom={b} distance={distanceTo(b)} onOpen={() => setSelected(b)} />
           ))}
         </div>
@@ -215,6 +230,15 @@ function BathroomCard({
         <span className="bathroom-card__rating-value">{bathroom.rating.toFixed(1)}</span>
         <span className="bathroom-card__spacer" />
         <span className="bathroom-card__votes">{bathroom.upvoteCount} votes</span>
+      </div>
+
+      <div className="bathroom-card__meta">
+        <span>Confirmed {formatRelativeTime(bathroom.lastConfirmedAt)}</span>
+        {bathroom.suggestions.length > 0 && (
+          <span>
+            💬 {bathroom.suggestions.length} update{bathroom.suggestions.length === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
 
       {bathroom.note && (

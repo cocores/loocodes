@@ -1,0 +1,16 @@
+.star-picker {
+  display: flex;
+  gap: 4px;
+}
+
+.star-picker__star {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--border);
+  padding: 2px;
+  transition: color 0.1s;
+}
+
+.star-picker__star--filled {
+  color: var(--orange);
+}

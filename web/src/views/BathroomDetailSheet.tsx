@@ -5,6 +5,7 @@ import { isReportedStale, type Bathroom } from "../types";
 import { ADABadge, DistanceBadge, PriceBadge, ReportedStaleBadge, TypeBadge } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
 import { hasFlaggedLocally } from "../lib/flaggedTracker";
+import { formatRelativeTime } from "../lib/time";
 import "./BathroomDetailSheet.css";
 
 export function BathroomDetailSheet({
@@ -14,9 +15,12 @@ export function BathroomDetailSheet({
   bathroom: Bathroom;
   onClose: () => void;
 }) {
-  const { bathrooms, voteUp, flag } = useBathroomStore();
+  const { bathrooms, voteUp, flag, suggest } = useBathroomStore();
   const { distanceTo } = useLocation();
   const [copied, setCopied] = useState(false);
+  const [showSuggestForm, setShowSuggestForm] = useState(false);
+  const [suggestionText, setSuggestionText] = useState("");
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
 
   const current = bathrooms.find((b) => b.id === bathroom.id) ?? bathroom;
   const alreadyFlagged = hasFlaggedLocally(current.id);
@@ -36,6 +40,19 @@ export function BathroomDetailSheet({
   const openInMaps = () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${current.latitude},${current.longitude}`;
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const submitSuggestion = async () => {
+    const text = suggestionText.trim();
+    if (!text) return;
+    setSubmittingSuggestion(true);
+    try {
+      await suggest(current.id, text);
+      setSuggestionText("");
+      setShowSuggestForm(false);
+    } finally {
+      setSubmittingSuggestion(false);
+    }
   };
 
   return (
@@ -97,6 +114,10 @@ export function BathroomDetailSheet({
             <span className="detail__votes">{current.upvoteCount} upvotes</span>
           </div>
 
+          <div className="detail__confirmed">
+            Confirmed {formatRelativeTime(current.lastConfirmedAt)}
+          </div>
+
           <div className="detail__actions">
             <button
               type="button"
@@ -121,6 +142,64 @@ export function BathroomDetailSheet({
           <button type="button" className="detail__maps" onClick={openInMaps}>
             🗺 Open in Maps
           </button>
+
+          <div className="detail__suggestions">
+            <div className="detail__suggestions-header">
+              <span>Suggested Updates</span>
+              {!showSuggestForm && (
+                <button type="button" className="detail__suggest-toggle" onClick={() => setShowSuggestForm(true)}>
+                  + Suggest an update
+                </button>
+              )}
+            </div>
+
+            {showSuggestForm && (
+              <div className="detail__suggest-form">
+                <textarea
+                  className="dark-input"
+                  placeholder="e.g. Code changed to 5555, or the door is locked after 8pm…"
+                  rows={2}
+                  value={suggestionText}
+                  onChange={(e) => setSuggestionText(e.target.value)}
+                />
+                <div className="detail__suggest-actions">
+                  <button
+                    type="button"
+                    className="detail__suggest-cancel"
+                    onClick={() => {
+                      setShowSuggestForm(false);
+                      setSuggestionText("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="detail__suggest-submit"
+                    disabled={!suggestionText.trim() || submittingSuggestion}
+                    onClick={() => void submitSuggestion()}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {current.suggestions.length === 0 ? (
+              <p className="detail__suggestions-empty">No suggested updates yet.</p>
+            ) : (
+              <div className="detail__suggestions-list">
+                {[...current.suggestions]
+                  .sort((a, b) => b.createdAt - a.createdAt)
+                  .map((s) => (
+                    <div key={s.id} className="detail__suggestion">
+                      <p>{s.text}</p>
+                      <span>{formatRelativeTime(s.createdAt)}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

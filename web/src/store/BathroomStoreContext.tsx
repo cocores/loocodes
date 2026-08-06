@@ -35,6 +35,7 @@ interface BathroomStoreValue {
   add: (bathroom: NewBathroom) => Promise<void>;
   voteUp: (id: string) => Promise<void>;
   flag: (id: string) => Promise<void>;
+  suggest: (id: string, text: string) => Promise<void>;
   /** Forgets this browser's local identity (new anon id, cleared flag history).
    * Does NOT touch any shared code data — codes already published stay public,
    * they just stop showing under "My Codes" for this browser. */
@@ -86,9 +87,10 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
           id: crypto.randomUUID(),
           isVerified: false,
           upvoteCount: 0,
-          rating: 0,
           hasVotedUp: false,
           flagCount: 0,
+          lastConfirmedAt: Date.now(),
+          suggestions: [],
         };
         setBathrooms((prev) => [local, ...prev]);
         return;
@@ -104,7 +106,9 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       if (isOffline) {
         setBathrooms((prev) =>
           prev.map((b) =>
-            b.id === id ? { ...b, hasVotedUp: true, upvoteCount: b.upvoteCount + 1 } : b,
+            b.id === id
+              ? { ...b, hasVotedUp: true, upvoteCount: b.upvoteCount + 1, lastConfirmedAt: Date.now() }
+              : b,
           ),
         );
         return;
@@ -141,6 +145,34 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
     [isOffline],
   );
 
+  const suggest = useCallback(
+    async (id: string, text: string) => {
+      if (isOffline) {
+        setBathrooms((prev) =>
+          prev.map((b) =>
+            b.id === id
+              ? {
+                  ...b,
+                  suggestions: [
+                    ...b.suggestions,
+                    { id: crypto.randomUUID(), text, submittedBy: getUserId(), createdAt: Date.now() },
+                  ],
+                }
+              : b,
+          ),
+        );
+        return;
+      }
+      try {
+        const updated = await api.suggest(id, text, getUserId());
+        setBathrooms((prev) => prev.map((b) => (b.id === id ? updated : b)));
+      } catch (err) {
+        console.error("Failed to submit suggestion", err);
+      }
+    },
+    [isOffline],
+  );
+
   const myCodes = useMemo(
     () => bathrooms.filter((b) => b.submittedBy === userId),
     [bathrooms, userId],
@@ -161,9 +193,21 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       add,
       voteUp,
       flag,
+      suggest,
       resetAccount,
     }),
-    [bathrooms, myCodes, isLoading, isOffline, offlineReason, add, voteUp, flag, resetAccount],
+    [
+      bathrooms,
+      myCodes,
+      isLoading,
+      isOffline,
+      offlineReason,
+      add,
+      voteUp,
+      flag,
+      suggest,
+      resetAccount,
+    ],
   );
 
   return <BathroomStoreContext.Provider value={value}>{children}</BathroomStoreContext.Provider>;

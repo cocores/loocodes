@@ -8,6 +8,7 @@ import { PinMap } from "../components/PinMap";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { CodeBadge } from "../components/Badges";
 import { Switch } from "../components/Switch";
+import { StarPicker } from "../components/StarPicker";
 import { getUserId } from "../lib/anonymousUser";
 import "./ShareView.css";
 
@@ -32,6 +33,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
   const [isFree, setIsFree] = useState(true);
   const [feeAmount, setFeeAmount] = useState("");
   const [note, setNote] = useState("");
+  const [cleanliness, setCleanliness] = useState(3);
   const [inputMode, setInputMode] = useState<InputMode>("gps");
   const [address, setAddress] = useState("");
   const [addressCoordinate, setAddressCoordinate] = useState<Coordinate | null>(null);
@@ -66,6 +68,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
       latitude: coord.latitude,
       longitude: coord.longitude,
       submittedBy: getUserId(),
+      rating: cleanliness,
     };
 
     setNewBathroom(bathroom);
@@ -91,6 +94,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
         setIsADA(false);
         setDroppedPin(null);
         setFeeAmount("");
+        setCleanliness(3);
       } catch (err) {
         setIsPublishing(false);
         setPublishError(err instanceof Error ? err.message : "Failed to publish code");
@@ -228,6 +232,10 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
               )}
             </>
           )}
+        </FormField>
+
+        <FormField label="Cleanliness">
+          <StarPicker value={cleanliness} onChange={setCleanliness} />
         </FormField>
 
         <FormField label="Notes (Optional)">
