@@ -56,7 +56,7 @@ function OfflineBanner() {
   return (
     <div className="app__offline-banner">
       Public sharing isn't set up yet — codes are only saved in this browser. See{" "}
-      <code>web/README.md</code> for KV setup.
+      <code>web/README.md</code> for Firebase setup.
     </div>
   );
 }

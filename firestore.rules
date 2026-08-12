@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// Backs the LooCodes web app's direct-from-browser Firestore access
+// (web/src/lib/firestoreBathrooms.ts). Since there's no accounts/auth system,
+// these rules are the ONLY real enforcement layer — the client-side
+// validation in firestoreBathrooms.ts is a first pass for good citizens, not
+// a security boundary.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /bathrooms/{bathroomId} {
+
+      // No account required to look up a code.
+      allow read: if true;
+
+      allow create: if isValidNewBathroom();
+
+      // Only three narrow transitions are allowed — direct edits to name,
+      // code, address, etc. are rejected. That's deliberate: this app treats
+      // corrections as proposals (the `suggestions` array), never silent
+      // overwrites, and there's no ownership model to safely arbitrate who's
+      // allowed to edit an existing listing's core fields.
+      allow update: if isVoteUpdate() || isFlagUpdate() || isSuggestionUpdate();
+
+      allow delete: if false;
+
+      function isValidNewBathroom() {
+        let data = request.resource.data;
+        return data.id == bathroomId
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+          && data.address is string && data.address.size() <= 300
+          && data.code is string && data.code.size() <= 50
+          && data.type in ['cafe', 'restaurant', 'publicRestroom', 'gasStation', 'store', 'park']
+          && data.isADAAccessible is bool
+          && data.isFree is bool
+          && data.feeAmount is string && data.feeAmount.size() <= 30
+          && data.note is string && data.note.size() <= 500
+          && data.latitude is number
+          && data.longitude is number
+          && data.submittedBy is string && data.submittedBy.size() > 0 && data.submittedBy.size() <= 100
+          // isVerified/upvoteCount aren't pinned to false/0: this also has to
+          // allow seeding demo listings with a fabricated history (see
+          // web/src/store/seed.ts). Neither is a real security boundary —
+          // nothing in the app treats them as trust-sensitive beyond a
+          // cosmetic badge, so a bound is enough.
+          && data.isVerified is bool
+          && data.upvoteCount is number && data.upvoteCount >= 0 && data.upvoteCount <= 100000
+          && data.rating is number && data.rating >= 1 && data.rating <= 5
+          && data.hasVotedUp == false
+          && data.flagCount == 0
+          && data.lastConfirmedAt is number
+          && data.suggestions is list && data.suggestions.size() == 0;
+      }
+
+      function isVoteUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        return after.diff(before).affectedKeys().hasOnly(['upvoteCount', 'hasVotedUp', 'lastConfirmedAt'])
+          && after.upvoteCount == before.upvoteCount + 1
+          && after.hasVotedUp == true
+          && after.lastConfirmedAt is number;
+      }
+
+      function isFlagUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        return after.diff(before).affectedKeys().hasOnly(['flagCount'])
+          && after.flagCount == before.flagCount + 1;
+      }
+
+      function isSuggestionUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
+        return after.diff(before).affectedKeys().hasOnly(['suggestions'])
+          && after.suggestions.size() == before.suggestions.size() + 1;
+      }
+    }
+  }
+}

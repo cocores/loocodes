@@ -4,3 +4,10 @@ DerivedData/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 .swiftpm/
+
+# Firebase CLI / emulator
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.runtimeconfig.json

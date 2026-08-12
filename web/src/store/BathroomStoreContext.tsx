@@ -8,12 +8,21 @@ import {
   type ReactNode,
 } from "react";
 import type { Bathroom, NewBathroom } from "../types";
-import { api } from "../lib/api";
+import { isFirebaseConfigured } from "../lib/firebase";
+import {
+  createBathroom,
+  flagBathroom,
+  subscribeToBathrooms,
+  suggestBathroomUpdate,
+  voteUpBathroom,
+} from "../lib/firestoreBathrooms";
 import { getUserId, resetUserId } from "../lib/anonymousUser";
 import { clearFlaggedLocally, hasFlaggedLocally, markFlaggedLocally } from "../lib/flaggedTracker";
 import { SEED_BATHROOMS } from "./seed";
 
 const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
+const NO_FIREBASE_MESSAGE =
+  "No Firebase project configured. Set VITE_FIREBASE_* env vars (see web/README.md).";
 
 function loadLocalFallback(): Bathroom[] {
   try {
@@ -29,7 +38,7 @@ interface BathroomStoreValue {
   bathrooms: Bathroom[];
   myCodes: Bathroom[];
   isLoading: boolean;
-  /** True when the shared API is unreachable (e.g. no KV store connected yet) — sharing is local-only until this clears. */
+  /** True when Firestore is unreachable or unconfigured — sharing is local-only until this clears. */
   isOffline: boolean;
   offlineReason: string | null;
   add: (bathroom: NewBathroom) => Promise<void>;
@@ -53,25 +62,39 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .list()
-      .then((list) => {
+    let unsubscribe: (() => void) | undefined;
+
+    if (!isFirebaseConfigured()) {
+      setBathrooms(loadLocalFallback());
+      setIsOffline(true);
+      setOfflineReason(NO_FIREBASE_MESSAGE);
+      setIsLoading(false);
+      return;
+    }
+
+    subscribeToBathrooms(
+      (list) => {
         if (cancelled) return;
         setBathrooms(list);
         setIsOffline(false);
         setOfflineReason(null);
-      })
-      .catch((err: Error) => {
+        setIsLoading(false);
+      },
+      (err) => {
         if (cancelled) return;
         setBathrooms(loadLocalFallback());
         setIsOffline(true);
         setOfflineReason(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+        setIsLoading(false);
+      },
+    ).then((unsub) => {
+      if (cancelled) unsub();
+      else unsubscribe = unsub;
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe?.();
     };
   }, []);
 
@@ -95,8 +118,9 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
         setBathrooms((prev) => [local, ...prev]);
         return;
       }
-      const created = await api.create(bathroom);
-      setBathrooms((prev) => [created, ...prev]);
+      // No manual setBathrooms here — the onSnapshot subscription above
+      // picks up the new doc (and reflects it to every other open tab too).
+      await createBathroom(bathroom);
     },
     [isOffline],
   );
@@ -114,8 +138,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const updated = await api.voteUp(id);
-        setBathrooms((prev) => prev.map((b) => (b.id === id ? updated : b)));
+        await voteUpBathroom(id);
       } catch (err) {
         console.error("Failed to vote up bathroom", err);
       }
@@ -135,8 +158,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const updated = await api.flag(id);
-        setBathrooms((prev) => prev.map((b) => (b.id === id ? updated : b)));
+        await flagBathroom(id);
         markFlaggedLocally(id);
       } catch (err) {
         console.error("Failed to flag bathroom", err);
@@ -164,8 +186,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const updated = await api.suggest(id, text, getUserId());
-        setBathrooms((prev) => prev.map((b) => (b.id === id ? updated : b)));
+        await suggestBathroomUpdate(id, text, getUserId());
       } catch (err) {
         console.error("Failed to submit suggestion", err);
       }
