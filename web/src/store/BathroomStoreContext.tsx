@@ -24,10 +24,25 @@ const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
 const NO_FIREBASE_MESSAGE =
   "No Firebase project configured. Set VITE_FIREBASE_* env vars (see web/README.md).";
 
+// Upgrades bathrooms cached under an older app version — this cache can
+// persist in a real browser across schema changes (flagCount replacing a
+// hasFlagged boolean, then lastConfirmedAt/suggestions being added for the
+// trust model). Without this, a stale cached record missing a field the UI
+// now assumes always exists (e.g. `suggestions.length`) crashes the render.
+function normalizeBathroom(bathroom: Bathroom & { hasFlagged?: boolean }): Bathroom {
+  const { hasFlagged, ...rest } = bathroom;
+  return {
+    ...rest,
+    flagCount: typeof bathroom.flagCount === "number" ? bathroom.flagCount : hasFlagged ? 1 : 0,
+    lastConfirmedAt: typeof bathroom.lastConfirmedAt === "number" ? bathroom.lastConfirmedAt : 0,
+    suggestions: Array.isArray(bathroom.suggestions) ? bathroom.suggestions : [],
+  };
+}
+
 function loadLocalFallback(): Bathroom[] {
   try {
     const raw = localStorage.getItem(LOCAL_CACHE_KEY);
-    if (raw) return JSON.parse(raw) as Bathroom[];
+    if (raw) return (JSON.parse(raw) as Bathroom[]).map(normalizeBathroom);
   } catch {
     // ignore corrupt cache
   }
