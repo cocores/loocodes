@@ -26,10 +26,36 @@
 }
 
 .list-view__count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 8px 20px;
   font-size: 14px;
   font-weight: 600;
   color: var(--muted);
+}
+
+.list-view__view-toggle {
+  display: flex;
+  flex-shrink: 0;
+  background: var(--card);
+  border-radius: 999px;
+  padding: 2px;
+  border: 0.5px solid var(--border);
+}
+
+.list-view__view-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.list-view__view-btn--active {
+  color: var(--white);
+  background: var(--border);
 }
 
 .list-view__empty {

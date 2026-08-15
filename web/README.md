@@ -49,6 +49,7 @@ src/
 │                           ProfileView, SettingsViews
 └── components/             FilterChip, badges, StarRating (display), StarPicker
                             (submission input), FormField, Switch,
+                            BathroomsMap (Nearby tab's Map view),
                             PinMap (Google Maps view for pin-drop mode),
                             AddressAutocomplete (Google Places predictions)
 ```
@@ -131,17 +132,21 @@ disappear and shared codes become visible to every visitor.
 
 ## Google Maps setup
 
-Two features use the Google Maps JavaScript API and share the same key:
+Three features use the Google Maps JavaScript API and share the same key:
 
+- The Nearby tab's **Map view** (`src/components/BathroomsMap.tsx`) — a
+  List/Map toggle next to the results count plots every filtered listing as a
+  pin (emoji per type), fits the view to them, and tapping one opens the same
+  detail sheet as the list.
 - The Share flow's **Drop Pin** map (`src/components/PinMap.tsx`).
 - **Address** mode's predictive autocomplete-as-you-type
   (`src/components/AddressAutocomplete.tsx`), which also resolves the
   selected suggestion to real coordinates (previously a placeholder).
 
-Without a key configured, both degrade gracefully — Drop Pin shows a "no key
-configured" message, Address mode falls back to a plain text field with a
-small "predictions unavailable" hint — rather than crashing. GPS mode is
-unaffected either way.
+Without a key configured, all three degrade gracefully — Map view and Drop
+Pin show a "no key configured" message, Address mode falls back to a plain
+text field with a small "predictions unavailable" hint — rather than
+crashing. GPS mode and List view are unaffected either way.
 
 1. **Create/select a project** at
    [console.cloud.google.com](https://console.cloud.google.com/).

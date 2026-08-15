@@ -1,0 +1,30 @@
+.bathrooms-map {
+  position: relative;
+  margin: 4px 20px 24px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+  height: 60vh;
+  min-height: 320px;
+}
+
+.bathrooms-map__canvas {
+  height: 100%;
+  width: 100%;
+  background: var(--card);
+}
+
+.bathrooms-map__message,
+.bathrooms-map__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  background: var(--card);
+  pointer-events: none;
+}

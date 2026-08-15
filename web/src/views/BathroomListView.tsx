@@ -12,6 +12,7 @@ import {
   TypeBadge,
 } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
+import { BathroomsMap } from "../components/BathroomsMap";
 import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import { computeTrustScore } from "../lib/trust";
 import { formatRelativeTime } from "../lib/time";
@@ -20,6 +21,8 @@ import "./BathroomListView.css";
 
 const CLOSE_BY_MAX_MILES = 1;
 const FURTHER_AWAY_MAX_MILES = 5;
+
+type ViewMode = "list" | "map";
 
 // Freshest/most-confirmed first — this is what "sorted by trust score and
 // last confirmed date" means in practice (the decay in computeTrustScore
@@ -35,6 +38,7 @@ export function BathroomListView() {
   const [adaOnly, setAdaOnly] = useState(false);
   const [selected, setSelected] = useState<Bathroom | null>(null);
   const [farAwayExpanded, setFarAwayExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const farAwayCardsRef = useRef<HTMLDivElement>(null);
 
   // The revealed cards can land below the fold with nothing to draw the eye
@@ -100,7 +104,25 @@ export function BathroomListView() {
       </div>
 
       <div className="list-view__count">
-        {filtered.length} Location{filtered.length === 1 ? "" : "s"} Found
+        <span>
+          {filtered.length} Location{filtered.length === 1 ? "" : "s"} Found
+        </span>
+        <div className="list-view__view-toggle">
+          <button
+            type="button"
+            className={`list-view__view-btn ${viewMode === "list" ? "list-view__view-btn--active" : ""}`}
+            onClick={() => setViewMode("list")}
+          >
+            ☰ List
+          </button>
+          <button
+            type="button"
+            className={`list-view__view-btn ${viewMode === "map" ? "list-view__view-btn--active" : ""}`}
+            onClick={() => setViewMode("map")}
+          >
+            🗺 Map
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -114,6 +136,8 @@ export function BathroomListView() {
           <p>No bathrooms found</p>
           <span>Try a different filter</span>
         </div>
+      ) : viewMode === "map" ? (
+        <BathroomsMap bathrooms={filtered} userLocation={location} onSelect={setSelected} />
       ) : grouped === null ? (
         <div className="list-view__cards">
           {sortedFlat.map((b) => (
