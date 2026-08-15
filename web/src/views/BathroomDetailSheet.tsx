@@ -4,6 +4,7 @@ import { useLocation } from "../hooks/useLocation";
 import { isReportedStale, type Bathroom } from "../types";
 import { ADABadge, DistanceBadge, PriceBadge, ReportedStaleBadge, TypeBadge } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
+import { BathroomsMap } from "../components/BathroomsMap";
 import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import { formatRelativeTime } from "../lib/time";
 import "./BathroomDetailSheet.css";
@@ -16,8 +17,9 @@ export function BathroomDetailSheet({
   onClose: () => void;
 }) {
   const { bathrooms, voteUp, flag, suggest } = useBathroomStore();
-  const { distanceTo } = useLocation();
+  const { location, distanceTo } = useLocation();
   const [copied, setCopied] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [showSuggestForm, setShowSuggestForm] = useState(false);
   const [suggestionText, setSuggestionText] = useState("");
   const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
@@ -35,11 +37,6 @@ export function BathroomDetailSheet({
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const openInMaps = () => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${current.latitude},${current.longitude}`;
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const submitSuggestion = async () => {
@@ -139,9 +136,23 @@ export function BathroomDetailSheet({
             </button>
           </div>
 
-          <button type="button" className="detail__maps" onClick={openInMaps}>
-            🗺 Open in Maps
+          <button
+            type="button"
+            className="detail__maps"
+            aria-expanded={showMap}
+            onClick={() => setShowMap((v) => !v)}
+          >
+            🗺 {showMap ? "Hide Map" : "View on Map"}
           </button>
+
+          {showMap && (
+            <BathroomsMap
+              bathrooms={[current]}
+              userLocation={location}
+              onSelect={() => {}}
+              height="220px"
+            />
+          )}
 
           <div className="detail__suggestions">
             <div className="detail__suggestions-header">

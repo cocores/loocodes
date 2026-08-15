@@ -10,9 +10,11 @@ interface BathroomsMapProps {
   bathrooms: Bathroom[];
   userLocation: Coordinate | null;
   onSelect: (bathroom: Bathroom) => void;
+  /** Overrides the default full-tab height, e.g. for a smaller inline embed. */
+  height?: string;
 }
 
-export function BathroomsMap({ bathrooms, userLocation, onSelect }: BathroomsMapProps) {
+export function BathroomsMap({ bathrooms, userLocation, onSelect, height }: BathroomsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -109,7 +111,7 @@ export function BathroomsMap({ bathrooms, userLocation, onSelect }: BathroomsMap
   }, [userLocation, ready]);
 
   return (
-    <div className="bathrooms-map">
+    <div className="bathrooms-map" style={height ? { height, margin: 0 } : undefined}>
       <div ref={containerRef} className="bathrooms-map__canvas" />
       {error && <div className="bathrooms-map__message">📍 {error}</div>}
       {!ready && !error && <div className="bathrooms-map__message">Loading map…</div>}
