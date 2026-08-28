@@ -12,15 +12,20 @@ interface BathroomsMapProps {
   onSelect: (bathroom: Bathroom) => void;
   /** Overrides the default full-tab height, e.g. for a smaller inline embed. */
   height?: string;
+  /** Tapping empty map area (not a pin) reports the coordinate here, e.g.
+   * to start adding a new listing at that spot. Omit to disable. */
+  onMapClick?: (coordinate: Coordinate) => void;
 }
 
-export function BathroomsMap({ bathrooms, userLocation, onSelect, height }: BathroomsMapProps) {
+export function BathroomsMap({ bathrooms, userLocation, onSelect, height, onMapClick }: BathroomsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
 
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -36,6 +41,12 @@ export function BathroomsMap({ bathrooms, userLocation, onSelect, height }: Bath
           disableDefaultUI: true,
           zoomControl: true,
           clickableIcons: false,
+        });
+        map.addListener("click", (e: google.maps.MapMouseEvent) => {
+          // Marker clicks don't bubble up to the map's own click event, so
+          // this only fires for taps on empty map area.
+          if (!e.latLng || !onMapClickRef.current) return;
+          onMapClickRef.current({ latitude: e.latLng.lat(), longitude: e.latLng.lng() });
         });
         mapRef.current = map;
         setReady(true);
@@ -113,6 +124,9 @@ export function BathroomsMap({ bathrooms, userLocation, onSelect, height }: Bath
   return (
     <div className="bathrooms-map" style={height ? { height, margin: 0 } : undefined}>
       <div ref={containerRef} className="bathrooms-map__canvas" />
+      {onMapClick && ready && !error && (
+        <div className="bathrooms-map__hint">Tap an empty spot to add a bathroom there</div>
+      )}
       {error && <div className="bathrooms-map__message">📍 {error}</div>}
       {!ready && !error && <div className="bathrooms-map__message">Loading map…</div>}
       {ready && !error && bathrooms.length === 0 && (
