@@ -20,13 +20,19 @@ const TRUSTED_CONTRIBUTOR_THRESHOLD = 10;
 type Screen = "profile" | "notifications" | "privacy" | "about";
 
 export function ProfileView() {
-  const { myCodes } = useBathroomStore();
+  const { myCodes, resetAccount } = useBathroomStore();
   const [screen, setScreen] = useState<Screen>("profile");
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
   const [avatarEmoji, setAvatarEmoji] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const confirmLogout = () => {
+    resetAccount();
+    setShowLogoutConfirm(false);
+  };
 
   const totalUpvotes = myCodes.reduce((sum, b) => sum + b.upvoteCount, 0);
   const totalFlags = myCodes.reduce((sum, b) => sum + b.flagCount, 0);
@@ -106,8 +112,30 @@ export function ProfileView() {
           <SettingsRow icon="🔒" label="Privacy settings" onClick={() => setScreen("privacy")} />
           <div className="profile-view__settings-divider" />
           <SettingsRow icon="ℹ️" label="About LooCodes" onClick={() => setScreen("about")} />
+          <div className="profile-view__settings-divider" />
+          <SettingsRow icon="🚪" label="Logout" onClick={() => setShowLogoutConfirm(true)} />
         </div>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="alert-backdrop" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="alert" onClick={(e) => e.stopPropagation()}>
+            <div className="alert__title">Logout?</div>
+            <div className="alert__message">
+              You'll get a fresh identity on this device. Codes you've already shared stay public
+              for others to use — they just won't show under "My Codes" anymore.
+            </div>
+            <div className="alert__actions">
+              <button type="button" onClick={() => setShowLogoutConfirm(false)}>
+                Cancel
+              </button>
+              <button type="button" className="alert__destructive" onClick={confirmLogout}>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPhotoOptions && (
         <div className="action-sheet-backdrop" onClick={() => setShowPhotoOptions(false)}>

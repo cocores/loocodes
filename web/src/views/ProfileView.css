@@ -314,3 +314,60 @@
 .emoji-sheet__emoji:hover {
   background: var(--card);
 }
+
+/* Logout confirm (mirrors SettingsViews.css's .alert — same primitive,
+   duplicated here since this codebase doesn't share a common stylesheet
+   for it across views). */
+
+.alert-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  padding: 20px;
+}
+
+.alert {
+  width: 100%;
+  max-width: 320px;
+  background: var(--card);
+  border-radius: 14px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.alert__title {
+  font-weight: 700;
+  font-size: 16px;
+  padding: 18px 16px 6px;
+}
+
+.alert__message {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 0 16px 16px;
+}
+
+.alert__actions {
+  display: flex;
+  border-top: 0.5px solid var(--border);
+}
+
+.alert__actions button {
+  flex: 1;
+  padding: 12px;
+  font-size: 15px;
+  color: var(--blue);
+}
+
+.alert__actions button + button {
+  border-left: 0.5px solid var(--border);
+}
+
+.alert__destructive {
+  color: #ff4d4f !important;
+  font-weight: 600;
+}
