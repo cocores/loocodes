@@ -4,7 +4,8 @@ export type BathroomTypeId =
   | "publicRestroom"
   | "gasStation"
   | "store"
-  | "park";
+  | "park"
+  | "zohranThrone";
 
 export interface BathroomTypeInfo {
   id: BathroomTypeId;
@@ -19,6 +20,11 @@ export const BATHROOM_TYPES: BathroomTypeInfo[] = [
   { id: "gasStation", label: "Gas Station", emoji: "⛽️" },
   { id: "store", label: "Store", emoji: "🏬" },
   { id: "park", label: "Park", emoji: "🌳" },
+  // A dedicated, user-selectable category for the City's free public
+  // restrooms (2026 citywide rollout) — anyone can tag a new listing this
+  // way, unlike isZohranToilet below (curated-only, set only on the 17
+  // seeded official listings in store/seed.ts).
+  { id: "zohranThrone", label: "Zohran's Throne", emoji: "🏛️" },
 ];
 
 export function bathroomType(id: BathroomTypeId): BathroomTypeInfo {

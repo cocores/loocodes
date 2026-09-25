@@ -30,7 +30,7 @@ service cloud.firestore {
           && data.name is string && data.name.size() > 0 && data.name.size() <= 200
           && data.address is string && data.address.size() <= 300
           && data.code is string && data.code.size() <= 50
-          && data.type in ['cafe', 'restaurant', 'publicRestroom', 'gasStation', 'store', 'park']
+          && data.type in ['cafe', 'restaurant', 'publicRestroom', 'gasStation', 'store', 'park', 'zohranThrone']
           && data.isADAAccessible is bool
           && data.isFree is bool
           && data.feeAmount is string && data.feeAmount.size() <= 30
