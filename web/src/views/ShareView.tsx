@@ -22,7 +22,15 @@ const PUBLISH_STEPS = [
   "Notifying nearby users",
 ];
 
-export function ShareView({ onViewList }: { onViewList: () => void }) {
+export function ShareView({
+  onViewList,
+  prefillLocation,
+}: {
+  onViewList: () => void;
+  /** Set when arriving here from a tap on the Nearby map — drops the pin
+   * there immediately instead of making the user redo it in Drop Pin mode. */
+  prefillLocation?: Coordinate | null;
+}) {
   const { add } = useBathroomStore();
   const { location } = useLocation();
 
@@ -38,6 +46,14 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
   const [address, setAddress] = useState("");
   const [addressCoordinate, setAddressCoordinate] = useState<Coordinate | null>(null);
   const [droppedPin, setDroppedPin] = useState<Coordinate | null>(null);
+  const [pinMapCenter, setPinMapCenter] = useState<Coordinate | null>(null);
+
+  useEffect(() => {
+    if (!prefillLocation) return;
+    setInputMode("pin");
+    setDroppedPin(prefillLocation);
+    setPinMapCenter(prefillLocation);
+  }, [prefillLocation]);
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishStep, setPublishStep] = useState(0);
@@ -93,6 +109,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
         setIsFree(true);
         setIsADA(false);
         setDroppedPin(null);
+        setPinMapCenter(null);
         setFeeAmount("");
         setCleanliness(3);
       } catch (err) {
@@ -201,7 +218,7 @@ export function ShareView({ onViewList }: { onViewList: () => void }) {
 
           {inputMode === "pin" && (
             <div className="share-view__pin">
-              <PinMap center={location ?? DEFAULT_CENTER} pin={droppedPin} onPick={setDroppedPin} />
+              <PinMap center={pinMapCenter ?? location ?? DEFAULT_CENTER} pin={droppedPin} onPick={setDroppedPin} />
               <div className="share-view__gps-status">Tap the map to drop a pin</div>
               {droppedPin && (
                 <div className="share-view__gps-status share-view__gps-status--pin">

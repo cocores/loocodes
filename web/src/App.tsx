@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BathroomStoreProvider, useBathroomStore } from "./store/BathroomStoreContext";
+import type { Coordinate } from "./hooks/useLocation";
 import { ShareView } from "./views/ShareView";
 import { BathroomListView } from "./views/BathroomListView";
 import { ProfileView } from "./views/ProfileView";
@@ -15,6 +16,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 
 function App() {
   const [tab, setTab] = useState<Tab>("nearby");
+  const [prefillLocation, setPrefillLocation] = useState<Coordinate | null>(null);
 
   return (
     <BathroomStoreProvider>
@@ -22,10 +24,15 @@ function App() {
         <OfflineBanner />
         <main className="app__content">
           <div style={{ display: tab === "share" ? "block" : "none" }}>
-            <ShareView onViewList={() => setTab("nearby")} />
+            <ShareView onViewList={() => setTab("nearby")} prefillLocation={prefillLocation} />
           </div>
           <div style={{ display: tab === "nearby" ? "block" : "none" }}>
-            <BathroomListView />
+            <BathroomListView
+              onAddAtLocation={(coordinate) => {
+                setPrefillLocation(coordinate);
+                setTab("share");
+              }}
+            />
           </div>
           <div style={{ display: tab === "profile" ? "block" : "none" }}>
             <ProfileView />

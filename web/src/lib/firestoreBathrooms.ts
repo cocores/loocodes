@@ -76,7 +76,16 @@ async function ensureSeeded(): Promise<void> {
     for (const bathroom of SEED_BATHROOMS) {
       batch.set(doc(db, COLLECTION, bathroom.id), bathroom);
     }
-    await batch.commit();
+    try {
+      await batch.commit();
+    } catch (err) {
+      // A concurrent client (or, in dev, React StrictMode's double effect
+      // invocation) can win this same race first — once these fixed-id
+      // docs exist, our redundant set() is evaluated as an "update" by the
+      // rules, which reject it (only vote/flag/suggestion updates are
+      // allowed). The data's already seeded either way, so this is fine.
+      console.warn("Seed race lost to a concurrent writer (expected, harmless):", err);
+    }
   }
   seeded = true;
 }

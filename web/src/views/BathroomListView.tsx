@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
-import { useLocation } from "../hooks/useLocation";
+import { useLocation, type Coordinate } from "../hooks/useLocation";
 import { BATHROOM_TYPES, isReportedStale, type Bathroom, type BathroomTypeId } from "../types";
 import { FilterChip } from "../components/FilterChip";
 import {
@@ -31,7 +31,7 @@ function sortByTrust(list: Bathroom[]): Bathroom[] {
   return [...list].sort((a, b) => computeTrustScore(b) - computeTrustScore(a));
 }
 
-export function BathroomListView() {
+export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coordinate: Coordinate) => void }) {
   const { bathrooms, isLoading } = useBathroomStore();
   const { location, distanceTo, distanceMilesTo } = useLocation();
   const [selectedType, setSelectedType] = useState<BathroomTypeId | null>(null);
@@ -130,14 +130,21 @@ export function BathroomListView() {
           <span className="list-view__empty-icon">🚽</span>
           <p>Loading…</p>
         </div>
+      ) : viewMode === "map" ? (
+        // Rendered even with zero matches (unlike the list branches below) —
+        // an empty map is exactly where "tap to add a bathroom" is most useful.
+        <BathroomsMap
+          bathrooms={filtered}
+          userLocation={location}
+          onSelect={setSelected}
+          onMapClick={onAddAtLocation}
+        />
       ) : filtered.length === 0 ? (
         <div className="list-view__empty">
           <span className="list-view__empty-icon">🚽</span>
           <p>No bathrooms found</p>
           <span>Try a different filter</span>
         </div>
-      ) : viewMode === "map" ? (
-        <BathroomsMap bathrooms={filtered} userLocation={location} onSelect={setSelected} />
       ) : grouped === null ? (
         <div className="list-view__cards">
           {sortedFlat.map((b) => (
