@@ -44,6 +44,7 @@ service cloud.firestore {
           // nothing in the app treats them as trust-sensitive beyond a
           // cosmetic badge, so a bound is enough.
           && data.isVerified is bool
+          && data.isZohranToilet is bool
           && data.upvoteCount is number && data.upvoteCount >= 0 && data.upvoteCount <= 100000
           && data.rating is number && data.rating >= 1 && data.rating <= 5
           && data.hasVotedUp == false

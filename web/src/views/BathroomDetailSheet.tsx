@@ -2,7 +2,14 @@ import { useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation } from "../hooks/useLocation";
 import { isReportedStale, type Bathroom } from "../types";
-import { ADABadge, DistanceBadge, PriceBadge, ReportedStaleBadge, TypeBadge } from "../components/Badges";
+import {
+  ADABadge,
+  DistanceBadge,
+  PriceBadge,
+  ReportedStaleBadge,
+  TypeBadge,
+  ZohranToiletBadge,
+} from "../components/Badges";
 import { StarRating } from "../components/StarRating";
 import { BathroomsMap } from "../components/BathroomsMap";
 import { hasFlaggedLocally } from "../lib/flaggedTracker";
@@ -86,6 +93,7 @@ export function BathroomDetailSheet({
             <TypeBadge type={current.type} />
             {current.isADAAccessible && <ADABadge />}
             <PriceBadge isFree={current.isFree} feeAmount={current.feeAmount} />
+            {current.isZohranToilet && <ZohranToiletBadge />}
             {isReportedStale(current) && <ReportedStaleBadge />}
           </div>
 
