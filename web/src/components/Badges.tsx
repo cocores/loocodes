@@ -33,3 +33,9 @@ export function DistanceBadge({ text }: { text: string }) {
 export function ReportedStaleBadge() {
   return <span className="badge badge--flag">⚠ Reported Stale</span>;
 }
+
+/** Marks one of the City's own free public restrooms (the 2026 citywide
+ * rollout) — see store/seed.ts's ZOHRAN_TOILETS. */
+export function ZohranToiletBadge() {
+  return <span className="badge badge--blue">🏛️ Zohran's Toilets</span>;
+}

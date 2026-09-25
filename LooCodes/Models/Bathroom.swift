@@ -14,6 +14,11 @@ struct Bathroom: Identifiable, Codable, Equatable {
     var longitude: Double
     var submittedBy: String
     var isVerified: Bool = false
+    /// True only for the City's own free public restrooms (2026 citywide
+    /// rollout) — mirrors web's Bathroom.isZohranToilet. iOS has no
+    /// Firestore/seed data wired up yet (see README), so this is schema
+    /// parity only for now, not yet surfaced anywhere in the UI.
+    var isZohranToilet: Bool = false
     var upvoteCount: Int = 0
     var rating: Double = 0
     var hasVotedUp: Bool = false

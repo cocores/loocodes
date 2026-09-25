@@ -46,6 +46,11 @@ export interface Bathroom {
   longitude: number;
   submittedBy: string;
   isVerified: boolean;
+  /** True only for the City's own free public restrooms (the 2026 Mamdani
+   * administration rollout) — never settable from the Share form, only
+   * true for the curated listings in store/seed.ts. Purely a cosmetic
+   * badge, like isVerified — not a security/trust boundary. */
+  isZohranToilet: boolean;
   upvoteCount: number;
   /** The submitter's own rough cleanliness rating, given at submission time. */
   rating: number;

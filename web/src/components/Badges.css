@@ -41,3 +41,8 @@
   color: var(--flag);
   background: var(--flag-bg);
 }
+
+.badge--blue {
+  color: var(--blue);
+  background: var(--blue-bg);
+}

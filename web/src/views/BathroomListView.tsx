@@ -10,6 +10,7 @@ import {
   PriceBadge,
   ReportedStaleBadge,
   TypeBadge,
+  ZohranToiletBadge,
 } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
 import { BathroomsMap } from "../components/BathroomsMap";
@@ -260,6 +261,7 @@ function BathroomCard({
         <CodeBadge code={bathroom.code} isFreeNoCode={bathroom.isFree && !bathroom.code} />
         {bathroom.isADAAccessible && <ADABadge />}
         <PriceBadge isFree={bathroom.isFree} feeAmount={bathroom.feeAmount} />
+        {bathroom.isZohranToilet && <ZohranToiletBadge />}
         {isReportedStale(bathroom) && <ReportedStaleBadge />}
       </div>
 

@@ -11,7 +11,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getDb } from "./firebase";
-import { SEED_BATHROOMS } from "../store/seed";
+import { SEED_BATHROOMS, ZOHRAN_TOILETS } from "../store/seed";
 import { BATHROOM_TYPES, type Bathroom, type BathroomSuggestion, type NewBathroom } from "../types";
 
 const COLLECTION = "bathrooms";
@@ -53,6 +53,10 @@ function buildBathroomDoc(input: NewBathroom, id: string): Bathroom {
     longitude,
     submittedBy: sanitizeText(input.submittedBy, 100) || "anonymous",
     isVerified: false,
+    // Only the curated ZOHRAN_TOILETS listings (seeded by
+    // ensureZohranToiletsSeeded below) ever get this — never settable
+    // from the Share form.
+    isZohranToilet: false,
     upvoteCount: 0,
     rating: clampedRating,
     hasVotedUp: false,
@@ -65,17 +69,34 @@ function buildBathroomDoc(input: NewBathroom, id: string): Bathroom {
 let seeded = false;
 
 /** A fresh Firestore project has no data — seed it once so the app isn't
- * empty on first load. Best-effort: a race between two first-ever clients
- * both seeding is harmless (same fixed doc ids, just redundant writes). */
+ * empty on first load, and separately backfill the curated NYC public
+ * toilet listings into ANY deployment that's missing them (fresh or
+ * already populated with real user data), keyed by their fixed ids so
+ * it's idempotent. Both writes share one batch and one up-front read. */
 async function ensureSeeded(): Promise<void> {
   if (seeded) return;
   const db = getDb();
   const snapshot = await getDocs(collection(db, COLLECTION));
+  const existingIds = new Set(snapshot.docs.map((d) => d.id));
+
+  const batch = writeBatch(db);
+  let hasWrites = false;
+
   if (snapshot.empty) {
-    const batch = writeBatch(db);
     for (const bathroom of SEED_BATHROOMS) {
       batch.set(doc(db, COLLECTION, bathroom.id), bathroom);
+      hasWrites = true;
     }
+  }
+
+  for (const toilet of ZOHRAN_TOILETS) {
+    if (!existingIds.has(toilet.id)) {
+      batch.set(doc(db, COLLECTION, toilet.id), toilet);
+      hasWrites = true;
+    }
+  }
+
+  if (hasWrites) {
     try {
       await batch.commit();
     } catch (err) {

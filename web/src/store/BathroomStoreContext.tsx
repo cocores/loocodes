@@ -36,6 +36,7 @@ function normalizeBathroom(bathroom: Bathroom & { hasFlagged?: boolean }): Bathr
     flagCount: typeof bathroom.flagCount === "number" ? bathroom.flagCount : hasFlagged ? 1 : 0,
     lastConfirmedAt: typeof bathroom.lastConfirmedAt === "number" ? bathroom.lastConfirmedAt : 0,
     suggestions: Array.isArray(bathroom.suggestions) ? bathroom.suggestions : [],
+    isZohranToilet: typeof bathroom.isZohranToilet === "boolean" ? bathroom.isZohranToilet : false,
   };
 }
 
@@ -124,6 +125,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
           ...bathroom,
           id: crypto.randomUUID(),
           isVerified: false,
+          isZohranToilet: false,
           upvoteCount: 0,
           hasVotedUp: false,
           flagCount: 0,
