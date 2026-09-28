@@ -243,8 +243,13 @@ export function ShareView({
                 }}
               />
               {addressCoordinate && (
-                <div className="share-view__gps-status share-view__gps-status--ok">
-                  📍 {addressCoordinate.latitude.toFixed(5)}, {addressCoordinate.longitude.toFixed(5)}
+                <div className="share-view__pin" style={{ marginTop: 8 }}>
+                  {/* Lets the map reflect the resolved address, and tapping
+                   * still nudges the pin if the geocoded spot is slightly off. */}
+                  <PinMap center={addressCoordinate} pin={addressCoordinate} onPick={setAddressCoordinate} />
+                  <div className="share-view__gps-status share-view__gps-status--ok">
+                    📍 {addressCoordinate.latitude.toFixed(5)}, {addressCoordinate.longitude.toFixed(5)}
+                  </div>
                 </div>
               )}
             </>

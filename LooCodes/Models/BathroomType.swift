@@ -7,6 +7,7 @@ enum BathroomType: String, CaseIterable, Identifiable, Codable {
     case gasStation       = "Gas Station"
     case store            = "Store"
     case park             = "Park"
+    case hotel            = "Hotel"
 
     var id: String { rawValue }
 
@@ -18,6 +19,7 @@ enum BathroomType: String, CaseIterable, Identifiable, Codable {
         case .gasStation:      return "⛽️"
         case .store:           return "🏬"
         case .park:            return "🌳"
+        case .hotel:           return "🏨"
         }
     }
 

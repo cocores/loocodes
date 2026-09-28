@@ -4,7 +4,8 @@ export type BathroomTypeId =
   | "publicRestroom"
   | "gasStation"
   | "store"
-  | "park";
+  | "park"
+  | "hotel";
 
 export interface BathroomTypeInfo {
   id: BathroomTypeId;
@@ -19,6 +20,7 @@ export const BATHROOM_TYPES: BathroomTypeInfo[] = [
   { id: "gasStation", label: "Gas Station", emoji: "⛽️" },
   { id: "store", label: "Store", emoji: "🏬" },
   { id: "park", label: "Park", emoji: "🌳" },
+  { id: "hotel", label: "Hotel", emoji: "🏨" },
 ];
 
 export function bathroomType(id: BathroomTypeId): BathroomTypeInfo {
