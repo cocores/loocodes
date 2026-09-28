@@ -78,7 +78,6 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    let unsubscribe: (() => void) | undefined;
 
     if (!isFirebaseConfigured()) {
       setBathrooms(loadLocalFallback());
@@ -88,7 +87,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    subscribeToBathrooms(
+    const unsubscribe = subscribeToBathrooms(
       (list) => {
         if (cancelled) return;
         setBathrooms(list);
@@ -103,14 +102,11 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
         setOfflineReason(err.message);
         setIsLoading(false);
       },
-    ).then((unsub) => {
-      if (cancelled) unsub();
-      else unsubscribe = unsub;
-    });
+    );
 
     return () => {
       cancelled = true;
-      unsubscribe?.();
+      unsubscribe();
     };
   }, []);
 

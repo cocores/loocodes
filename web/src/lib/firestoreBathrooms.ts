@@ -111,12 +111,17 @@ async function ensureSeeded(): Promise<void> {
   seeded = true;
 }
 
-export async function subscribeToBathrooms(
+export function subscribeToBathrooms(
   onData: (bathrooms: Bathroom[]) => void,
   onError: (err: Error) => void,
-): Promise<Unsubscribe> {
-  await ensureSeeded();
+): Unsubscribe {
   const db = getDb();
+  // Fire-and-forget: seeding runs in the background and its writes surface
+  // through this same listener once they land. It must never block the
+  // listener itself from attaching — if this one-time check is slow or
+  // hangs (flaky network, etc.), the app should still show whatever data
+  // is already there instead of being stuck on a loading spinner forever.
+  ensureSeeded().catch((err) => console.warn("ensureSeeded failed (non-fatal):", err));
   return onSnapshot(
     collection(db, COLLECTION),
     (snapshot) => onData(snapshot.docs.map((d) => d.data() as Bathroom)),
