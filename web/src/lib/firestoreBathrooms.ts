@@ -12,8 +12,11 @@ import {
 } from "firebase/firestore";
 import { getDb } from "./firebase";
 import {
+  BERLIN_TOILETS,
   LONDON_TOILETS,
   LOS_ANGELES_TOILETS,
+  PARIS_TOILETS,
+  ROME_TOILETS,
   SAN_FRANCISCO_TOILETS,
   SEED_BATHROOMS,
   ZOHRAN_TOILETS,
@@ -77,9 +80,11 @@ let seeded = false;
 /** A fresh Firestore project has no data — seed it once so the app isn't
  * empty on first load, and separately backfill the curated public toilet
  * listings (NYC's free ones, London's paid ones, LA's library/Metro ones,
- * SF's Pit Stop program) into ANY deployment that's missing them (fresh or
- * already populated with real user data), keyed by their fixed ids so it's
- * idempotent. All writes share one batch and one up-front read. */
+ * SF's Pit Stop program, Paris's sanisettes, Berlin's Wall-operated
+ * toilets, Rome's P.Stop kiosks) into ANY deployment that's missing them
+ * (fresh or already populated with real user data), keyed by their fixed
+ * ids so it's idempotent. All writes share one batch and one up-front
+ * read. */
 async function ensureSeeded(): Promise<void> {
   if (seeded) return;
   const db = getDb();
@@ -101,6 +106,9 @@ async function ensureSeeded(): Promise<void> {
     ...LONDON_TOILETS,
     ...LOS_ANGELES_TOILETS,
     ...SAN_FRANCISCO_TOILETS,
+    ...PARIS_TOILETS,
+    ...BERLIN_TOILETS,
+    ...ROME_TOILETS,
   ]) {
     if (!existingIds.has(toilet.id)) {
       batch.set(doc(db, COLLECTION, toilet.id), toilet);
