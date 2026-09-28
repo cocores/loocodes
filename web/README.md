@@ -49,9 +49,9 @@ src/
 │                           ProfileView, SettingsViews
 └── components/             FilterChip, badges, StarRating (display), StarPicker
                             (submission input), FormField, Switch,
-                            BathroomsMap (Nearby tab's Map view),
-                            PinMap (Google Maps view for pin-drop mode),
-                            AddressAutocomplete (Google Places predictions)
+                            BathroomsMap (Nearby tab's Map view, Leaflet),
+                            PinMap (Leaflet view for pin-drop mode),
+                            AddressAutocomplete (OSM Nominatim predictions)
 ```
 
 ## Trust, confirmations & suggestions
@@ -102,9 +102,7 @@ browser's `localStorage`).
 
 ### One-time setup
 
-1. **Create a project** at [console.firebase.google.com](https://console.firebase.google.com/)
-   (or reuse the same Google Cloud project as your Maps API key, below —
-   Firebase projects are GCP projects).
+1. **Create a project** at [console.firebase.google.com](https://console.firebase.google.com/).
 2. **Build → Firestore Database → Create database** (any region; start in
    production mode, since `firestore.rules` supplies real rules regardless).
 3. **Project settings → General → Your apps → Add app → Web**. Copy the
@@ -130,51 +128,31 @@ browser's `localStorage`).
 Redeploy the app once the env vars are set — the offline banner should
 disappear and shared codes become visible to every visitor.
 
-## Google Maps setup
+## Maps (Leaflet + OpenStreetMap)
 
-Three features use the Google Maps JavaScript API and share the same key:
+Maps and address search use free, no-API-key services — nothing to
+configure, no billing account required:
 
 - The Nearby tab's **Map view** (`src/components/BathroomsMap.tsx`) — a
   List/Map toggle next to the results count plots every filtered listing as a
   pin (emoji per type), fits the view to them, and tapping one opens the same
-  detail sheet as the list.
-- The Share flow's **Drop Pin** map (`src/components/PinMap.tsx`).
+  detail sheet as the list. Built with [Leaflet](https://leafletjs.com/)
+  rendering [OpenStreetMap](https://www.openstreetmap.org/) tiles.
+- The Share flow's **Drop Pin** map (`src/components/PinMap.tsx`) — same
+  Leaflet/OSM setup.
 - **Address** mode's predictive autocomplete-as-you-type
-  (`src/components/AddressAutocomplete.tsx`), which also resolves the
-  selected suggestion to real coordinates (previously a placeholder).
+  (`src/components/AddressAutocomplete.tsx`) queries OpenStreetMap's
+  [Nominatim](https://nominatim.org/) search API and resolves the selected
+  suggestion to real coordinates.
 
-Without a key configured, all three degrade gracefully — Map view and Drop
-Pin show a "no key configured" message, Address mode falls back to a plain
-text field with a small "predictions unavailable" hint — rather than
-crashing. GPS mode and List view are unaffected either way.
+These all work out of the box in every environment (dev, preview, prod) with
+no env vars. GPS mode and List view are unaffected either way.
 
-1. **Create/select a project** at
-   [console.cloud.google.com](https://console.cloud.google.com/).
-2. **Enable billing** on the project. This is required by Google even for
-   free-tier usage — Maps Platform includes a recurring $200/month credit
-   that covers typical small-app usage, so a hobby project like this
-   shouldn't actually be charged.
-3. **APIs & Services → Library** → enable both:
-   - **Maps JavaScript API** (Drop Pin map)
-   - **Places API (New)** (address autocomplete + geocoding)
-4. **APIs & Services → Credentials → Create Credentials → API key.**
-5. **Restrict the key** (click into it after creating):
-   - *Application restrictions* → **Websites** → add your Vercel domain(s),
-     e.g. `https://your-app.vercel.app/*`, plus `http://localhost:5173/*` if
-     you want it working under `npm run dev` too.
-   - *API restrictions* → restrict to **Maps JavaScript API** and
-     **Places API (New)**.
-
-   This key is meant to be public (it ships in the built JS bundle) — the
-   website restriction is what keeps other sites from using your quota, not
-   secrecy.
-6. **Add it as an env var** named `VITE_GOOGLE_MAPS_API_KEY`:
-   - Locally: copy `.env.example` to `.env.local` and paste the key in.
-   - On Vercel: Project Settings → Environment Variables → add
-     `VITE_GOOGLE_MAPS_API_KEY` for Production (and Preview/Development if
-     you want it there too) → redeploy.
-
-Address autocomplete uses the newer session-token-based Places API
-(`AutocompleteSuggestion.fetchAutocompleteSuggestions`), not the legacy
-`google.maps.places.Autocomplete` widget — predictions are billed per
-session (typing + selecting counts once), not per keystroke.
+**Usage policy note:** the public `tile.openstreetmap.org` and
+`nominatim.openstreetmap.org` endpoints are free community services with
+[usage policies](https://operations.osmfoundation.org/policies/) — notably
+Nominatim's 1 request/second cap (the autocomplete input is debounced to stay
+under this). They're fine for a hobby project's traffic; a production app
+with meaningful volume should switch to a paid tile/geocoding provider (e.g.
+MapTiler, Mapbox, LocationIQ) or self-host Nominatim, and swap the URLs in
+`BathroomsMap.tsx`, `PinMap.tsx`, and `AddressAutocomplete.tsx`.

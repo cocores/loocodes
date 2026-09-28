@@ -29,7 +29,6 @@
   white-space: nowrap;
 }
 
-.bathrooms-map__message,
 .bathrooms-map__empty {
   position: absolute;
   inset: 0;
@@ -42,4 +41,27 @@
   color: var(--muted);
   background: var(--card);
   pointer-events: none;
+}
+
+.bathrooms-map__pin-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 15px;
+}
+
+.bathrooms-map__user-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--blue);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 3px rgba(91, 158, 245, 0.35);
 }

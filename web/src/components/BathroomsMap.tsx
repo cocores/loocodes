@@ -1,10 +1,29 @@
 import { useEffect, useRef, useState } from "react";
+import L from "leaflet";
 import type { Coordinate } from "../hooks/useLocation";
-import { loadGoogleMaps } from "../lib/googleMaps";
 import { bathroomType, type Bathroom } from "../types";
 import "./BathroomsMap.css";
 
-const DEFAULT_CENTER = { lat: 40.758, lng: -73.9855 };
+const DEFAULT_CENTER: L.LatLngExpression = [40.758, -73.9855];
+const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+
+const USER_ICON = L.divIcon({
+  className: "bathrooms-map__user-pin",
+  html: '<span class="bathrooms-map__user-dot"></span>',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+function emojiIcon(emoji: string): L.DivIcon {
+  return L.divIcon({
+    className: "bathrooms-map__pin",
+    html: `<span class="bathrooms-map__pin-badge">${emoji}</span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+}
 
 interface BathroomsMapProps {
   bathrooms: Bathroom[];
@@ -19,76 +38,60 @@ interface BathroomsMapProps {
 
 export function BathroomsMap({ bathrooms, userLocation, onSelect, height, onMapClick }: BathroomsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
-  const userMarkerRef = useRef<google.maps.Marker | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
 
-  const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    loadGoogleMaps()
-      .then((maps) => {
-        if (cancelled || !containerRef.current) return;
-        const map = new maps.Map(containerRef.current, {
-          center: DEFAULT_CENTER,
-          zoom: 13,
-          disableDefaultUI: true,
-          zoomControl: true,
-          clickableIcons: false,
-        });
-        map.addListener("click", (e: google.maps.MapMouseEvent) => {
-          // Marker clicks don't bubble up to the map's own click event, so
-          // this only fires for taps on empty map area.
-          if (!e.latLng || !onMapClickRef.current) return;
-          onMapClickRef.current({ latitude: e.latLng.lat(), longitude: e.latLng.lng() });
-        });
-        mapRef.current = map;
-        setReady(true);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
-      });
+    if (!containerRef.current || mapRef.current) return;
+    const map = L.map(containerRef.current, {
+      center: DEFAULT_CENTER,
+      zoom: 13,
+    });
+    L.tileLayer(OSM_TILE_URL, { attribution: OSM_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      // Marker clicks don't bubble up to the map's own click event (Leaflet
+      // markers don't bubble mouse events by default), so this only fires
+      // for taps on empty map area.
+      onMapClickRef.current?.({ latitude: e.latlng.lat, longitude: e.latlng.lng });
+    });
+    mapRef.current = map;
+    setReady(true);
     return () => {
-      cancelled = true;
+      map.remove();
+      mapRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- map is created once
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = bathrooms.map((b) => {
-      const marker = new google.maps.Marker({
-        position: { lat: b.latitude, lng: b.longitude },
-        map,
+      const marker = L.marker([b.latitude, b.longitude], {
+        icon: emojiIcon(bathroomType(b.type).emoji),
         title: b.name,
-        label: { text: bathroomType(b.type).emoji, fontSize: "16px" },
-      });
-      marker.addListener("click", () => onSelectRef.current(b));
+      }).addTo(map);
+      marker.on("click", () => onSelectRef.current(b));
       return marker;
     });
 
-    const pointCount = bathrooms.length + (userLocation ? 1 : 0);
-    if (pointCount === 0) {
-      map.setCenter(DEFAULT_CENTER);
-      map.setZoom(13);
-    } else if (pointCount === 1) {
-      const only = userLocation ?? { latitude: bathrooms[0].latitude, longitude: bathrooms[0].longitude };
-      map.setCenter({ lat: only.latitude, lng: only.longitude });
-      map.setZoom(15);
+    const points: L.LatLngExpression[] = bathrooms.map((b) => [b.latitude, b.longitude]);
+    if (userLocation) points.push([userLocation.latitude, userLocation.longitude]);
+
+    if (points.length === 0) {
+      map.setView(DEFAULT_CENTER, 13);
+    } else if (points.length === 1) {
+      map.setView(points[0], 15);
     } else {
-      const bounds = new google.maps.LatLngBounds();
-      bathrooms.forEach((b) => bounds.extend({ lat: b.latitude, lng: b.longitude }));
-      if (userLocation) bounds.extend({ lat: userLocation.latitude, lng: userLocation.longitude });
-      map.fitBounds(bounds, 48);
+      map.fitBounds(L.latLngBounds(points), { padding: [48, 48] });
     }
   }, [bathrooms, userLocation, ready]);
 
@@ -96,40 +99,29 @@ export function BathroomsMap({ bathrooms, userLocation, onSelect, height, onMapC
     const map = mapRef.current;
     if (!map) return;
     if (!userLocation) {
-      userMarkerRef.current?.setMap(null);
+      userMarkerRef.current?.remove();
       userMarkerRef.current = null;
       return;
     }
-    const position = { lat: userLocation.latitude, lng: userLocation.longitude };
+    const position: L.LatLngExpression = [userLocation.latitude, userLocation.longitude];
     if (userMarkerRef.current) {
-      userMarkerRef.current.setPosition(position);
+      userMarkerRef.current.setLatLng(position);
     } else {
-      userMarkerRef.current = new google.maps.Marker({
-        position,
-        map,
+      userMarkerRef.current = L.marker(position, {
+        icon: USER_ICON,
+        zIndexOffset: 1000,
         title: "You",
-        zIndex: 999,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#5b9ef5",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
-        },
-      });
+      }).addTo(map);
     }
   }, [userLocation, ready]);
 
   return (
     <div className="bathrooms-map" style={height ? { height, margin: 0 } : undefined}>
       <div ref={containerRef} className="bathrooms-map__canvas" />
-      {onMapClick && ready && !error && (
+      {onMapClick && ready && (
         <div className="bathrooms-map__hint">Tap an empty spot to add a bathroom there</div>
       )}
-      {error && <div className="bathrooms-map__message">📍 {error}</div>}
-      {!ready && !error && <div className="bathrooms-map__message">Loading map…</div>}
-      {ready && !error && bathrooms.length === 0 && (
+      {ready && bathrooms.length === 0 && (
         <div className="bathrooms-map__empty">No locations match the current filters.</div>
       )}
     </div>

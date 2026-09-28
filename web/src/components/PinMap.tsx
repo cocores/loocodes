@@ -1,7 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import L from "leaflet";
 import type { Coordinate } from "../hooks/useLocation";
-import { loadGoogleMaps } from "../lib/googleMaps";
 import "./PinMap.css";
+
+const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+
+const DROP_PIN_ICON = L.divIcon({
+  className: "pin-map__pin",
+  html: '<span class="pin-map__pin-badge">📍</span>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 30],
+});
 
 interface PinMapProps {
   center: Coordinate;
@@ -11,66 +22,52 @@ interface PinMapProps {
 
 export function PinMap({ center, pin, onPick }: PinMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
 
-  const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-
   useEffect(() => {
-    let cancelled = false;
-    loadGoogleMaps()
-      .then((maps) => {
-        if (cancelled || !containerRef.current) return;
-        const map = new maps.Map(containerRef.current, {
-          center: { lat: center.latitude, lng: center.longitude },
-          zoom: 15,
-          disableDefaultUI: true,
-          zoomControl: true,
-          clickableIcons: false,
-        });
-        map.addListener("click", (e: google.maps.MapMouseEvent) => {
-          if (!e.latLng) return;
-          onPickRef.current({ latitude: e.latLng.lat(), longitude: e.latLng.lng() });
-        });
-        mapRef.current = map;
-        setReady(true);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
-      });
+    if (!containerRef.current || mapRef.current) return;
+    const map = L.map(containerRef.current, {
+      center: [center.latitude, center.longitude],
+      zoom: 15,
+    });
+    L.tileLayer(OSM_TILE_URL, { attribution: OSM_ATTRIBUTION, maxZoom: 19 }).addTo(map);
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      onPickRef.current({ latitude: e.latlng.lat, longitude: e.latlng.lng });
+    });
+    mapRef.current = map;
     return () => {
-      cancelled = true;
+      map.remove();
+      mapRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- map is created once
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- map is created once, using center's initial value
   }, []);
 
   useEffect(() => {
-    if (mapRef.current) mapRef.current.setCenter({ lat: center.latitude, lng: center.longitude });
+    mapRef.current?.setView([center.latitude, center.longitude]);
   }, [center]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (!map) return;
     if (!pin) {
-      markerRef.current?.setMap(null);
+      markerRef.current?.remove();
       markerRef.current = null;
       return;
     }
-    const position = { lat: pin.latitude, lng: pin.longitude };
+    const position: L.LatLngExpression = [pin.latitude, pin.longitude];
     if (markerRef.current) {
-      markerRef.current.setPosition(position);
+      markerRef.current.setLatLng(position);
     } else {
-      markerRef.current = new google.maps.Marker({ map: mapRef.current, position });
+      markerRef.current = L.marker(position, { icon: DROP_PIN_ICON }).addTo(map);
     }
   }, [pin]);
 
   return (
     <div className="pin-map">
       <div ref={containerRef} className="pin-map__canvas" />
-      {error && <div className="pin-map__message">📍 {error}</div>}
-      {!ready && !error && <div className="pin-map__message">Loading map…</div>}
     </div>
   );
 }

@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import type { Coordinate } from "../hooks/useLocation";
-import { isGoogleMapsConfigured, loadGoogleMaps } from "../lib/googleMaps";
 import "./AddressAutocomplete.css";
 
 const MIN_QUERY_LENGTH = 3;
-const DEBOUNCE_MS = 250;
+// Nominatim's usage policy caps the public instance at 1 request/second —
+// this debounce keeps normal typing well under that without needing an API
+// key. See web/README.md for tradeoffs vs. self-hosting for higher traffic.
+const DEBOUNCE_MS = 500;
+
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
 
 interface AddressAutocompleteProps {
   value: string;
@@ -14,24 +23,14 @@ interface AddressAutocompleteProps {
 }
 
 export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: AddressAutocompleteProps) {
-  const placesRef = useRef<typeof google.maps.places | null>(null);
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const debounceRef = useRef<number | undefined>(undefined);
+  const abortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompleteSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isGoogleMapsConfigured()) return;
-    loadGoogleMaps()
-      .then((maps) => {
-        placesRef.current = maps.places;
-      })
-      .catch((err: Error) => setError(err.message));
-  }, []);
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -43,28 +42,40 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, []);
 
-  useEffect(() => () => window.clearTimeout(debounceRef.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
+    },
+    [],
+  );
 
   function fetchSuggestions(input: string) {
-    const places = placesRef.current;
-    if (!places || input.trim().length < MIN_QUERY_LENGTH) {
+    if (input.trim().length < MIN_QUERY_LENGTH) {
       setSuggestions([]);
       setIsOpen(false);
       return;
     }
-    if (!sessionTokenRef.current) {
-      sessionTokenRef.current = new places.AutocompleteSessionToken();
-    }
-    places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-      input,
-      sessionToken: sessionTokenRef.current,
-    })
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(input)}`;
+    fetch(url, { signal: controller.signal })
       .then((res) => {
-        setSuggestions(res.suggestions);
-        setIsOpen(res.suggestions.length > 0);
-        setHighlighted(-1);
+        if (!res.ok) throw new Error(`Address search failed (${res.status})`);
+        return res.json() as Promise<NominatimResult[]>;
       })
-      .catch((err: Error) => setError(err.message));
+      .then((results) => {
+        setSuggestions(results);
+        setIsOpen(results.length > 0);
+        setHighlighted(-1);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (err.name === "AbortError") return;
+        setError(err.message);
+      });
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -74,24 +85,13 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
     debounceRef.current = window.setTimeout(() => fetchSuggestions(next), DEBOUNCE_MS);
   }
 
-  async function selectSuggestion(suggestion: google.maps.places.AutocompleteSuggestion) {
-    const prediction = suggestion.placePrediction;
-    if (!prediction) return;
+  function selectSuggestion(suggestion: NominatimResult) {
     setIsOpen(false);
     setSuggestions([]);
-    try {
-      const { place } = await prediction.toPlace().fetchFields({ fields: ["location", "formattedAddress"] });
-      if (place.location) {
-        onSelect(
-          { latitude: place.location.lat(), longitude: place.location.lng() },
-          place.formattedAddress ?? prediction.text.text,
-        );
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resolve address");
-    } finally {
-      sessionTokenRef.current = null;
-    }
+    onSelect(
+      { latitude: Number.parseFloat(suggestion.lat), longitude: Number.parseFloat(suggestion.lon) },
+      suggestion.display_name,
+    );
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -104,7 +104,7 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
       setHighlighted((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
     } else if (e.key === "Enter" && highlighted >= 0) {
       e.preventDefault();
-      void selectSuggestion(suggestions[highlighted]);
+      selectSuggestion(suggestions[highlighted]);
     } else if (e.key === "Escape") {
       setIsOpen(false);
     }
@@ -125,27 +125,22 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
       {isOpen && suggestions.length > 0 && (
         <ul className="address-autocomplete__list">
           {suggestions.map((s, i) => (
-            <li key={s.placePrediction?.placeId ?? i}>
+            <li key={s.place_id}>
               <button
                 type="button"
                 className={`address-autocomplete__option ${
                   i === highlighted ? "address-autocomplete__option--highlighted" : ""
                 }`}
                 onMouseEnter={() => setHighlighted(i)}
-                onClick={() => void selectSuggestion(s)}
+                onClick={() => selectSuggestion(s)}
               >
-                {s.placePrediction?.text.text}
+                {s.display_name}
               </button>
             </li>
           ))}
         </ul>
       )}
 
-      {!isGoogleMapsConfigured() && (
-        <p className="address-autocomplete__hint">
-          Address predictions unavailable (no Google Maps API key configured).
-        </p>
-      )}
       {error && <p className="address-autocomplete__error">⚠ {error}</p>}
     </div>
   );

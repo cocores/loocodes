@@ -33,16 +33,8 @@
   background: var(--border);
 }
 
-.address-autocomplete__hint,
 .address-autocomplete__error {
   margin: 8px 0 0;
   font-size: 12px;
-}
-
-.address-autocomplete__hint {
-  color: var(--muted);
-}
-
-.address-autocomplete__error {
   color: var(--flag);
 }
