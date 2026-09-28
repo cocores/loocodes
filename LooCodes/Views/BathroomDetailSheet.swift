@@ -150,14 +150,18 @@ struct BathroomDetailSheet: View {
                     .opacity(current.hasVotedUp ? 0.3 : 1)
                 }
 
-                // Open in Maps
+                // Opens Apple Maps with walking directions already started,
+                // rather than just dropping a pin the user has to tap
+                // "Directions" on themselves.
                 Button {
                     let placemark = MKPlacemark(coordinate: current.coordinate)
                     let item      = MKMapItem(placemark: placemark)
                     item.name     = current.name
-                    item.openInMaps()
+                    item.openInMaps(launchOptions: [
+                        MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking,
+                    ])
                 } label: {
-                    Label("Open in Maps", systemImage: "map")
+                    Label("Walking Directions", systemImage: "figure.walk")
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)

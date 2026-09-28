@@ -240,7 +240,13 @@
   background: var(--flag-bg);
 }
 
+.detail__location-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .detail__maps {
+  flex: 1;
   padding: 14px;
   border-radius: 12px;
   font-weight: 600;

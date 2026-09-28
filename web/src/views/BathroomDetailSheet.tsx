@@ -14,6 +14,7 @@ import { StarRating } from "../components/StarRating";
 import { BathroomsMap } from "../components/BathroomsMap";
 import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import { formatRelativeTime } from "../lib/time";
+import { openWalkingDirections } from "../lib/directions";
 import "./BathroomDetailSheet.css";
 
 export function BathroomDetailSheet({
@@ -144,14 +145,25 @@ export function BathroomDetailSheet({
             </button>
           </div>
 
-          <button
-            type="button"
-            className="detail__maps"
-            aria-expanded={showMap}
-            onClick={() => setShowMap((v) => !v)}
-          >
-            🗺 {showMap ? "Hide Map" : "View on Map"}
-          </button>
+          <div className="detail__location-actions">
+            <button
+              type="button"
+              className="detail__maps"
+              onClick={() =>
+                openWalkingDirections({ latitude: current.latitude, longitude: current.longitude })
+              }
+            >
+              🧭 Directions
+            </button>
+            <button
+              type="button"
+              className="detail__maps"
+              aria-expanded={showMap}
+              onClick={() => setShowMap((v) => !v)}
+            >
+              🗺 {showMap ? "Hide Map" : "View on Map"}
+            </button>
+          </div>
 
           {showMap && (
             <BathroomsMap
