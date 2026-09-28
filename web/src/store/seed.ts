@@ -244,12 +244,12 @@ export const ZOHRAN_TOILETS: Bathroom[] = [
     isADAAccessible: true,
     isFree: true,
     feeAmount: "",
-    // Approximated to Truxton St's own location (Ocean Hill) — this short
-    // street's exact meeting point with Fulton St wasn't precisely
-    // resolvable via free geocoding; close enough for a bathroom pin.
+    // Recalculated by geocoding Fulton St and Truxton St separately and
+    // triangulating where their resolved segments meet — more precise than
+    // the original single-street approximation.
     note: "Free NYC public restroom (2026 citywide rollout). Open daily 7am–10pm, touchless, baby-changing station.",
-    latitude: 40.6785342,
-    longitude: -73.9065667,
+    latitude: 40.6783,
+    longitude: -73.9062,
     submittedBy: "nyc_dot",
     isVerified: true,
     isZohranToilet: true,
@@ -357,11 +357,11 @@ export const ZOHRAN_TOILETS: Bathroom[] = [
     isADAAccessible: true,
     isFree: true,
     feeAmount: "",
-    // Approximated: nearest resolvable point along 34th Ave close to 64th
-    // St's meridian in Woodside; free geocoding couldn't pin the exact node.
+    // Recalculated to 64th St's own geocoded centerline in Woodside — the
+    // prior estimate fell noticeably off the actual street.
     note: "Free NYC public restroom (2026 citywide rollout). Open daily 7am–10pm, touchless, baby-changing station.",
-    latitude: 40.7519,
-    longitude: -73.9025,
+    latitude: 40.747,
+    longitude: -73.8996,
     submittedBy: "nyc_dot",
     isVerified: true,
     isZohranToilet: true,
@@ -425,10 +425,11 @@ export const ZOHRAN_TOILETS: Bathroom[] = [
     isADAAccessible: true,
     isFree: true,
     feeAmount: "",
-    // Approximated as the midpoint between the two streets' nearby
-    // segments; free geocoding didn't resolve the exact corner node.
+    // Recalculated using Delancey St's own resolved latitude and Suffolk
+    // St's resolved longitude — Suffolk is short enough that its geocoded
+    // centerline sits right at the Delancey crossing.
     note: "Free NYC public restroom (2026 citywide rollout). Open daily 7am–10pm, touchless, baby-changing station.",
-    latitude: 40.7182,
+    latitude: 40.7199,
     longitude: -73.9857,
     submittedBy: "nyc_dot",
     isVerified: true,
@@ -771,11 +772,12 @@ export const LONDON_TOILETS: Bathroom[] = [
     isADAAccessible: true,
     isFree: false,
     feeAmount: "50p",
-    // Approximated from general knowledge (next to the Cutty Sark ship) —
-    // free geocoding returned no match for this specific plaza name.
+    // Recalculated from the Cutty Sark ship itself, now precisely geocoded
+    // (the plaza's namesake and immediate surroundings) — confirms the
+    // prior general-knowledge estimate was already very close.
     note: "Free for RADAR key holders.",
-    latitude: 51.4826,
-    longitude: -0.0097,
+    latitude: 51.482933,
+    longitude: -0.0096145,
     submittedBy: "london_toilets",
     isVerified: true,
     isZohranToilet: false,
@@ -865,11 +867,13 @@ export const LONDON_TOILETS: Bathroom[] = [
     isADAAccessible: true,
     isFree: false,
     feeAmount: "£1",
-    // Approximated to the gardens' north-west corner, by the London Eye —
-    // free geocoding only resolved the gardens' overall centroid.
+    // Recalculated: free geocoding now resolves Jubilee Gardens itself
+    // (bounding box roughly 51.5034–51.5037, -0.1185 to -0.1180) — the
+    // previous estimate's longitude fell well outside the actual gardens.
+    // Pinned to the box's west edge, closest to the London Eye side.
     note: "North-west corner of the gardens by the London Eye. Open from 10am daily.",
-    latitude: 51.504,
-    longitude: -0.1204,
+    latitude: 51.5037,
+    longitude: -0.1184,
     submittedBy: "london_toilets",
     isVerified: true,
     isZohranToilet: false,
@@ -889,11 +893,12 @@ export const LONDON_TOILETS: Bathroom[] = [
     isADAAccessible: true,
     isFree: false,
     feeAmount: "£1",
-    // Approximated from general knowledge (by exit 6 of Westminster
-    // station) — free geocoding couldn't resolve the specific station exit.
+    // Recalculated to Parliament Street's own geocoded southern segment
+    // (near Parliament Square/Bridge Street, where exit 6 lets out) — free
+    // geocoding still can't resolve the specific station exit itself.
     note: "Exit 6 of Westminster station. Daily 7.30am–8.30pm. Baby change and ambulant cubicles.",
-    latitude: 51.501,
-    longitude: -0.1257,
+    latitude: 51.5013,
+    longitude: -0.1261,
     submittedBy: "london_toilets",
     isVerified: true,
     isZohranToilet: false,
