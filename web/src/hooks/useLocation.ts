@@ -50,10 +50,13 @@ export function useLocation() {
     [location],
   );
 
+  // Null (rather than a "—" placeholder) when location isn't known yet, so
+  // callers can hide the distance badge entirely instead of showing a
+  // non-numeric stand-in.
   const distanceTo = useCallback(
-    (coordinate: Coordinate): string => {
+    (coordinate: Coordinate): string | null => {
       const miles = distanceMilesTo(coordinate);
-      return miles === null ? "—" : `${miles.toFixed(1)} mi`;
+      return miles === null ? null : `${miles.toFixed(1)} mi`;
     },
     [distanceMilesTo],
   );

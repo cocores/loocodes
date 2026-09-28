@@ -233,7 +233,7 @@ function BathroomCard({
   onOpen,
 }: {
   bathroom: Bathroom;
-  distance: string;
+  distance: string | null;
   onOpen: () => void;
 }) {
   const { voteUp, flag } = useBathroomStore();

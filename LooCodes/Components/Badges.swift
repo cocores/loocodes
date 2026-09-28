@@ -56,15 +56,19 @@ struct PriceBadge: View {
     }
 }
 
+// Hidden entirely rather than showing a placeholder when distance isn't
+// known yet (no GPS fix) — a distance badge should always be a number.
 struct DistanceBadge: View {
-    let text: String
+    let text: String?
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Color(hex: "8888aa"))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(hex: "252530"))
-            .clipShape(Capsule())
+        if let text {
+            Text(text)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color(hex: "8888aa"))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(hex: "252530"))
+                .clipShape(Capsule())
+        }
     }
 }

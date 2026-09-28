@@ -26,7 +26,10 @@ export function PriceBadge({ isFree, feeAmount }: { isFree: boolean; feeAmount: 
   );
 }
 
-export function DistanceBadge({ text }: { text: string }) {
+// Hidden entirely rather than showing a placeholder when distance isn't
+// known yet (no GPS fix) — a distance badge should always be a number.
+export function DistanceBadge({ text }: { text: string | null }) {
+  if (text === null) return null;
   return <span className="badge badge--muted">{text}</span>;
 }
 

@@ -20,8 +20,11 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         manager.startUpdatingLocation()
     }
 
-    func distance(to coordinate: CLLocationCoordinate2D) -> String {
-        guard let location else { return "—" }
+    // Nil (rather than a "—" placeholder) when location isn't known yet, so
+    // callers can hide the distance badge entirely instead of showing a
+    // non-numeric stand-in.
+    func distance(to coordinate: CLLocationCoordinate2D) -> String? {
+        guard let location else { return nil }
         let target = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let miles = location.distance(from: target) / 1609.34
         return String(format: "%.1f mi", miles)
