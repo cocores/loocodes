@@ -7,10 +7,6 @@ enum BathroomType: String, CaseIterable, Identifiable, Codable {
     case gasStation       = "Gas Station"
     case store            = "Store"
     case park             = "Park"
-    // Mirrors web's "zohranThrone" BathroomTypeId — see
-    // Models/Bathroom.swift's isZohranToilet doc comment for context. Not
-    // yet wired to any live data on iOS.
-    case zohranThrone     = "Zohran's Throne"
 
     var id: String { rawValue }
 
@@ -22,7 +18,6 @@ enum BathroomType: String, CaseIterable, Identifiable, Codable {
         case .gasStation:      return "⛽️"
         case .store:           return "🏬"
         case .park:            return "🌳"
-        case .zohranThrone:    return "🏛️"
         }
     }
 

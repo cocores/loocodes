@@ -64,12 +64,7 @@ export function ShareView({
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
-  // A free code-less entry is only valid for types that are genuinely
-  // open/code-free by nature — a literal public restroom, or one of the
-  // City's own free installs.
-  const canShare =
-    name.trim() !== "" &&
-    (code.trim() !== "" || (isFree && (type === "publicRestroom" || type === "zohranThrone")));
+  const canShare = name.trim() !== "" && (code.trim() !== "" || (isFree && type === "publicRestroom"));
 
   const publishCode = () => {
     let coord: Coordinate;
