@@ -21,7 +21,7 @@ import { BathroomDetailSheet } from "./BathroomDetailSheet";
 import "./BathroomListView.css";
 
 const CLOSE_BY_MAX_MILES = 1;
-const FURTHER_AWAY_MAX_MILES = 5;
+const FURTHER_AWAY_MAX_MILES = 15;
 
 type ViewMode = "list" | "map";
 
