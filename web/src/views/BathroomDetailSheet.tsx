@@ -34,8 +34,6 @@ export function BathroomDetailSheet({
   const current = bathrooms.find((b) => b.id === bathroom.id) ?? bathroom;
   const alreadyFlagged = flaggedIds.has(current.id);
   const alreadyVotedUp = votedUpIds.has(current.id);
-  const voteDisabled = alreadyVotedUp || alreadyFlagged;
-  const flagDisabled = alreadyFlagged || alreadyVotedUp;
 
   const copyCode = async () => {
     try {
@@ -128,8 +126,6 @@ export function BathroomDetailSheet({
             <button
               type="button"
               className={`detail__vote ${alreadyVotedUp ? "detail__vote--active" : ""}`}
-              disabled={voteDisabled}
-              style={{ opacity: alreadyFlagged ? 0.3 : 1 }}
               onClick={() => voteUp(current.id)}
             >
               {alreadyVotedUp ? "✓ Works!" : "👍 It Works"}
@@ -137,8 +133,7 @@ export function BathroomDetailSheet({
             <button
               type="button"
               className={`detail__flag ${alreadyFlagged ? "detail__flag--active" : ""}`}
-              disabled={flagDisabled}
-              style={{ opacity: alreadyVotedUp ? 0.3 : 1 }}
+              disabled={alreadyFlagged}
               onClick={() => flag(current.id)}
             >
               {alreadyFlagged ? "🚩 Flagged" : "🚩 Flag Stale"}

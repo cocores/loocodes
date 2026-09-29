@@ -151,13 +151,11 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   const voteUp = useCallback(
     async (id: string) => {
-      // hasVotedUp on the bathroom document is a shared aggregate (it's what
-      // the security rules pin `true` on every vote), not a per-user flag —
-      // whether *this* device already voted is tracked locally instead
-      // (mirrors flag()'s flaggedIds), so one person's vote doesn't
-      // permanently disable the button for everyone else.
-      if (votedUpIds.has(id)) return;
-
+      // "It Works" is a reconfirmation, not a one-time toggle — it should
+      // always be clickable, even after this device has already voted, so
+      // repeat visits keep lastConfirmedAt (and the trust score it feeds)
+      // fresh. votedUpIds only drives the "✓ Works!" styling below, it's
+      // never used to block the click.
       if (isOffline) {
         setBathrooms((prev) =>
           prev.map((b) =>
@@ -178,7 +176,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
         console.error("Failed to vote up bathroom", err);
       }
     },
-    [isOffline, votedUpIds],
+    [isOffline],
   );
 
   const flag = useCallback(

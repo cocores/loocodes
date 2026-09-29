@@ -243,8 +243,6 @@ function BathroomCard({
   const { voteUp, flag, votedUpIds, flaggedIds } = useBathroomStore();
   const alreadyFlagged = flaggedIds.has(bathroom.id);
   const alreadyVotedUp = votedUpIds.has(bathroom.id);
-  const voteDisabled = alreadyVotedUp || alreadyFlagged;
-  const flagDisabled = alreadyFlagged || alreadyVotedUp;
 
   return (
     <div className="bathroom-card" onClick={onOpen} role="button" tabIndex={0}>
@@ -297,8 +295,6 @@ function BathroomCard({
         <button
           type="button"
           className={`bathroom-card__vote ${alreadyVotedUp ? "bathroom-card__vote--active" : ""}`}
-          disabled={voteDisabled}
-          style={{ opacity: alreadyFlagged ? 0.3 : 1 }}
           onClick={() => voteUp(bathroom.id)}
         >
           {alreadyVotedUp ? "✓ Works!" : "It Works"}
@@ -306,8 +302,7 @@ function BathroomCard({
         <button
           type="button"
           className={`bathroom-card__flag ${alreadyFlagged ? "bathroom-card__flag--active" : ""}`}
-          disabled={flagDisabled}
-          style={{ opacity: alreadyVotedUp ? 0.3 : 1 }}
+          disabled={alreadyFlagged}
           onClick={() => flag(bathroom.id)}
           aria-label="Flag stale"
         >
