@@ -98,9 +98,25 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Firestore's listener doesn't always reject cleanly on a bad
+    // connection — a flaky network can leave both callbacks below
+    // permanently unfired (mirrors a write's Promise hanging instead of
+    // rejecting under the same conditions), which would otherwise leave the
+    // app on the loading spinner forever. This is a ceiling, not a
+    // replacement: if the listener does resolve later, the callback below
+    // still runs and switches back to live data normally.
+    const timeoutId = setTimeout(() => {
+      if (cancelled) return;
+      setBathrooms((prev) => (prev.length > 0 ? prev : loadLocalFallback()));
+      setIsOffline(true);
+      setOfflineReason("Timed out waiting for Cloud Firestore — showing cached data.");
+      setIsLoading(false);
+    }, 8000);
+
     const unsubscribe = subscribeToBathrooms(
       (list) => {
         if (cancelled) return;
+        clearTimeout(timeoutId);
         setBathrooms(list);
         setIsOffline(false);
         setOfflineReason(null);
@@ -108,6 +124,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       },
       (err) => {
         if (cancelled) return;
+        clearTimeout(timeoutId);
         setBathrooms(loadLocalFallback());
         setIsOffline(true);
         setOfflineReason(err.message);
@@ -117,6 +134,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
       unsubscribe();
     };
   }, []);
