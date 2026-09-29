@@ -12,7 +12,6 @@ import {
 } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
 import { BathroomsMap } from "../components/BathroomsMap";
-import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import { formatRelativeTime } from "../lib/time";
 import { openWalkingDirections } from "../lib/directions";
 import "./BathroomDetailSheet.css";
@@ -24,7 +23,7 @@ export function BathroomDetailSheet({
   bathroom: Bathroom;
   onClose: () => void;
 }) {
-  const { bathrooms, voteUp, flag, suggest } = useBathroomStore();
+  const { bathrooms, voteUp, flag, suggest, votedUpIds, flaggedIds } = useBathroomStore();
   const { location, distanceTo } = useLocation();
   const [copied, setCopied] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -33,9 +32,10 @@ export function BathroomDetailSheet({
   const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
 
   const current = bathrooms.find((b) => b.id === bathroom.id) ?? bathroom;
-  const alreadyFlagged = hasFlaggedLocally(current.id);
-  const voteDisabled = current.hasVotedUp || alreadyFlagged;
-  const flagDisabled = alreadyFlagged || current.hasVotedUp;
+  const alreadyFlagged = flaggedIds.has(current.id);
+  const alreadyVotedUp = votedUpIds.has(current.id);
+  const voteDisabled = alreadyVotedUp || alreadyFlagged;
+  const flagDisabled = alreadyFlagged || alreadyVotedUp;
 
   const copyCode = async () => {
     try {
@@ -127,18 +127,18 @@ export function BathroomDetailSheet({
           <div className="detail__actions">
             <button
               type="button"
-              className={`detail__vote ${current.hasVotedUp ? "detail__vote--active" : ""}`}
+              className={`detail__vote ${alreadyVotedUp ? "detail__vote--active" : ""}`}
               disabled={voteDisabled}
               style={{ opacity: alreadyFlagged ? 0.3 : 1 }}
               onClick={() => voteUp(current.id)}
             >
-              {current.hasVotedUp ? "✓ Works!" : "👍 It Works"}
+              {alreadyVotedUp ? "✓ Works!" : "👍 It Works"}
             </button>
             <button
               type="button"
               className={`detail__flag ${alreadyFlagged ? "detail__flag--active" : ""}`}
               disabled={flagDisabled}
-              style={{ opacity: current.hasVotedUp ? 0.3 : 1 }}
+              style={{ opacity: alreadyVotedUp ? 0.3 : 1 }}
               onClick={() => flag(current.id)}
             >
               {alreadyFlagged ? "🚩 Flagged" : "🚩 Flag Stale"}

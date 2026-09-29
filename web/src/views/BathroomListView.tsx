@@ -14,7 +14,6 @@ import {
 } from "../components/Badges";
 import { StarRating } from "../components/StarRating";
 import { BathroomsMap } from "../components/BathroomsMap";
-import { hasFlaggedLocally } from "../lib/flaggedTracker";
 import { computeTrustScore } from "../lib/trust";
 import { formatRelativeTime } from "../lib/time";
 import { BathroomDetailSheet } from "./BathroomDetailSheet";
@@ -241,10 +240,11 @@ function BathroomCard({
   distance: string | null;
   onOpen: () => void;
 }) {
-  const { voteUp, flag } = useBathroomStore();
-  const alreadyFlagged = hasFlaggedLocally(bathroom.id);
-  const voteDisabled = bathroom.hasVotedUp || alreadyFlagged;
-  const flagDisabled = alreadyFlagged || bathroom.hasVotedUp;
+  const { voteUp, flag, votedUpIds, flaggedIds } = useBathroomStore();
+  const alreadyFlagged = flaggedIds.has(bathroom.id);
+  const alreadyVotedUp = votedUpIds.has(bathroom.id);
+  const voteDisabled = alreadyVotedUp || alreadyFlagged;
+  const flagDisabled = alreadyFlagged || alreadyVotedUp;
 
   return (
     <div className="bathroom-card" onClick={onOpen} role="button" tabIndex={0}>
@@ -296,18 +296,18 @@ function BathroomCard({
       <div className="bathroom-card__actions" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
-          className={`bathroom-card__vote ${bathroom.hasVotedUp ? "bathroom-card__vote--active" : ""}`}
+          className={`bathroom-card__vote ${alreadyVotedUp ? "bathroom-card__vote--active" : ""}`}
           disabled={voteDisabled}
           style={{ opacity: alreadyFlagged ? 0.3 : 1 }}
           onClick={() => voteUp(bathroom.id)}
         >
-          {bathroom.hasVotedUp ? "✓ Works!" : "It Works"}
+          {alreadyVotedUp ? "✓ Works!" : "It Works"}
         </button>
         <button
           type="button"
           className={`bathroom-card__flag ${alreadyFlagged ? "bathroom-card__flag--active" : ""}`}
           disabled={flagDisabled}
-          style={{ opacity: bathroom.hasVotedUp ? 0.3 : 1 }}
+          style={{ opacity: alreadyVotedUp ? 0.3 : 1 }}
           onClick={() => flag(bathroom.id)}
           aria-label="Flag stale"
         >

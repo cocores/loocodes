@@ -17,7 +17,8 @@ import {
   voteUpBathroom,
 } from "../lib/firestoreBathrooms";
 import { getUserId, resetUserId } from "../lib/anonymousUser";
-import { clearFlaggedLocally, hasFlaggedLocally, markFlaggedLocally } from "../lib/flaggedTracker";
+import { clearFlaggedLocally, markFlaggedLocally, readFlaggedIds } from "../lib/flaggedTracker";
+import { clearVotedUpLocally, markVotedUpLocally, readVotedUpIds } from "../lib/votedUpTracker";
 import { SEED_BATHROOMS } from "./seed";
 
 const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
@@ -61,6 +62,14 @@ interface BathroomStoreValue {
   voteUp: (id: string) => Promise<void>;
   flag: (id: string) => Promise<void>;
   suggest: (id: string, text: string) => Promise<void>;
+  /** Which bathrooms *this device* has voted up / flagged — hasVotedUp and
+   * flagCount on the bathroom document itself are shared aggregates, not
+   * per-user state, so per-device history is tracked here (backed by
+   * localStorage) instead. React state, not a raw tracker-function call, so
+   * that voting/flagging re-renders the button immediately instead of
+   * waiting on the next unrelated Firestore snapshot to happen to arrive. */
+  votedUpIds: ReadonlySet<string>;
+  flaggedIds: ReadonlySet<string>;
   /** Forgets this browser's local identity (new anon id, cleared flag history).
    * Does NOT touch any shared code data — codes already published stay public,
    * they just stop showing under "My Codes" for this browser. */
@@ -75,6 +84,8 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
   const [isOffline, setIsOffline] = useState(false);
   const [offlineReason, setOfflineReason] = useState<string | null>(null);
   const [userId, setUserId] = useState(getUserId);
+  const [votedUpIds, setVotedUpIds] = useState<Set<string>>(() => readVotedUpIds());
+  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(() => readFlaggedIds());
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +151,13 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   const voteUp = useCallback(
     async (id: string) => {
+      // hasVotedUp on the bathroom document is a shared aggregate (it's what
+      // the security rules pin `true` on every vote), not a per-user flag —
+      // whether *this* device already voted is tracked locally instead
+      // (mirrors flag()'s flaggedIds), so one person's vote doesn't
+      // permanently disable the button for everyone else.
+      if (votedUpIds.has(id)) return;
+
       if (isOffline) {
         setBathrooms((prev) =>
           prev.map((b) =>
@@ -148,36 +166,42 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
               : b,
           ),
         );
+        markVotedUpLocally(id);
+        setVotedUpIds((prev) => new Set(prev).add(id));
         return;
       }
       try {
         await voteUpBathroom(id);
+        markVotedUpLocally(id);
+        setVotedUpIds((prev) => new Set(prev).add(id));
       } catch (err) {
         console.error("Failed to vote up bathroom", err);
       }
     },
-    [isOffline],
+    [isOffline, votedUpIds],
   );
 
   const flag = useCallback(
     async (id: string) => {
-      if (hasFlaggedLocally(id)) return;
+      if (flaggedIds.has(id)) return;
 
       if (isOffline) {
         setBathrooms((prev) =>
           prev.map((b) => (b.id === id ? { ...b, flagCount: b.flagCount + 1 } : b)),
         );
         markFlaggedLocally(id);
+        setFlaggedIds((prev) => new Set(prev).add(id));
         return;
       }
       try {
         await flagBathroom(id);
         markFlaggedLocally(id);
+        setFlaggedIds((prev) => new Set(prev).add(id));
       } catch (err) {
         console.error("Failed to flag bathroom", err);
       }
     },
-    [isOffline],
+    [isOffline, flaggedIds],
   );
 
   const suggest = useCallback(
@@ -214,6 +238,9 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   const resetAccount = useCallback(() => {
     clearFlaggedLocally();
+    clearVotedUpLocally();
+    setFlaggedIds(new Set());
+    setVotedUpIds(new Set());
     setUserId(resetUserId());
   }, []);
 
@@ -228,6 +255,8 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       voteUp,
       flag,
       suggest,
+      votedUpIds,
+      flaggedIds,
       resetAccount,
     }),
     [
@@ -240,6 +269,8 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       voteUp,
       flag,
       suggest,
+      votedUpIds,
+      flaggedIds,
       resetAccount,
     ],
   );

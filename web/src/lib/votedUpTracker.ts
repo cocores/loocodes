@@ -1,4 +1,4 @@
-const STORAGE_KEY = "loocodes.flaggedIds";
+const STORAGE_KEY = "loocodes.votedUpIds";
 
 function readIds(): Set<string> {
   try {
@@ -10,20 +10,20 @@ function readIds(): Set<string> {
   return new Set();
 }
 
-export function hasFlaggedLocally(id: string): boolean {
+export function hasVotedUpLocally(id: string): boolean {
   return readIds().has(id);
 }
 
-export function readFlaggedIds(): Set<string> {
+export function readVotedUpIds(): Set<string> {
   return readIds();
 }
 
-export function markFlaggedLocally(id: string): void {
+export function markVotedUpLocally(id: string): void {
   const ids = readIds();
   ids.add(id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
 }
 
-export function clearFlaggedLocally(): void {
+export function clearVotedUpLocally(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
