@@ -13,12 +13,18 @@ import {
 import { getDb } from "./firebase";
 import {
   BERLIN_TOILETS,
+  DENVER_TOILETS,
+  KANSAS_CITY_KS_TOILETS,
+  KANSAS_CITY_MO_TOILETS,
   LONDON_TOILETS,
   LOS_ANGELES_TOILETS,
+  MIAMI_TOILETS,
   PARIS_TOILETS,
   ROME_TOILETS,
   SAN_FRANCISCO_TOILETS,
   SEED_BATHROOMS,
+  ST_LOUIS_TOILETS,
+  WASHINGTON_DC_TOILETS,
   ZOHRAN_TOILETS,
 } from "../store/seed";
 import { BATHROOM_TYPES, type Bathroom, type BathroomSuggestion, type NewBathroom } from "../types";
@@ -81,10 +87,11 @@ let seeded = false;
  * empty on first load, and separately backfill the curated public toilet
  * listings (NYC's free ones, London's paid ones, LA's library/Metro ones,
  * SF's Pit Stop program, Paris's sanisettes, Berlin's Wall-operated
- * toilets, Rome's P.Stop kiosks) into ANY deployment that's missing them
- * (fresh or already populated with real user data), keyed by their fixed
- * ids so it's idempotent. All writes share one batch and one up-front
- * read. */
+ * toilets, Rome's P.Stop kiosks, Denver's/Miami's/Kansas City's park
+ * restrooms, DC's rec centers and NPS Mall restrooms, St. Louis's Forest
+ * Park and rec centers) into ANY deployment that's missing them (fresh or
+ * already populated with real user data), keyed by their fixed ids so it's
+ * idempotent. All writes share one batch and one up-front read. */
 async function ensureSeeded(): Promise<void> {
   if (seeded) return;
   const db = getDb();
@@ -109,6 +116,12 @@ async function ensureSeeded(): Promise<void> {
     ...PARIS_TOILETS,
     ...BERLIN_TOILETS,
     ...ROME_TOILETS,
+    ...DENVER_TOILETS,
+    ...MIAMI_TOILETS,
+    ...KANSAS_CITY_KS_TOILETS,
+    ...KANSAS_CITY_MO_TOILETS,
+    ...WASHINGTON_DC_TOILETS,
+    ...ST_LOUIS_TOILETS,
   ]) {
     if (!existingIds.has(toilet.id)) {
       batch.set(doc(db, COLLECTION, toilet.id), toilet);
