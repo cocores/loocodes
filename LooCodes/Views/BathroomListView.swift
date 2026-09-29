@@ -8,10 +8,18 @@ struct BathroomListView: View {
     @State private var adaOnly                     = false
     @State private var selected: Bathroom?         = nil
 
+    // Bathrooms in a different city entirely aren't "found" for this user —
+    // scope to a local radius once we have a location fix (mirrors the web
+    // app's Close By/Further Away cutoff). Unknown location falls back to
+    // showing everything rather than hiding results outright.
+    private static let localAreaMaxMiles: Double = 15
+
     private var filtered: [Bathroom] {
         store.bathrooms.filter {
-            (selectedType == nil || $0.type == selectedType) &&
-            (!adaOnly || $0.isADAAccessible)
+            guard (selectedType == nil || $0.type == selectedType) &&
+                (!adaOnly || $0.isADAAccessible) else { return false }
+            guard let miles = locationService.distanceMiles(to: $0.coordinate) else { return true }
+            return miles < Self.localAreaMaxMiles
         }
     }
 

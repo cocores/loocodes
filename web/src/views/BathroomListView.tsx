@@ -78,6 +78,11 @@ export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coord
 
   const sortedFlat = useMemo(() => sortByTrust(filtered), [filtered]);
 
+  // "Far Away" bathrooms are a different city entirely, not the user's area —
+  // exclude them from the headline count (they're still reachable via the
+  // collapsible section below, which shows its own count).
+  const localCount = grouped ? grouped.closeBy.length + grouped.furtherAway.length : filtered.length;
+
   return (
     <div className="screen list-view">
       <header className="list-view__header">
@@ -106,7 +111,7 @@ export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coord
 
       <div className="list-view__count">
         <span>
-          {filtered.length} Location{filtered.length === 1 ? "" : "s"} Found
+          {localCount} Location{localCount === 1 ? "" : "s"} Found
         </span>
         <div className="list-view__view-toggle">
           <button
