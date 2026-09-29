@@ -19,6 +19,7 @@ import {
   LONDON_TOILETS,
   LOS_ANGELES_TOILETS,
   MIAMI_TOILETS,
+  NYC_PARKS_TOILETS,
   PARIS_TOILETS,
   ROME_TOILETS,
   SAN_FRANCISCO_TOILETS,
@@ -110,6 +111,7 @@ async function ensureSeeded(): Promise<void> {
 
   for (const toilet of [
     ...ZOHRAN_TOILETS,
+    ...NYC_PARKS_TOILETS,
     ...LONDON_TOILETS,
     ...LOS_ANGELES_TOILETS,
     ...SAN_FRANCISCO_TOILETS,
