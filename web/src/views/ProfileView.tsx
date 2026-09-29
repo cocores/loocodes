@@ -3,6 +3,7 @@ import { useBathroomStore } from "../store/BathroomStoreContext";
 import { bathroomType, type Bathroom } from "../types";
 import { CodeBadge } from "../components/Badges";
 import { AboutView, NotificationPrefsView, PrivacySettingsView } from "./SettingsViews";
+import { AdminFlaggedView } from "./AdminFlaggedView";
 import "./ProfileView.css";
 
 const EMOJIS = [
@@ -17,10 +18,10 @@ const EMOJIS = [
 // browser's current track record, not a persistent account-level score.
 const TRUSTED_CONTRIBUTOR_THRESHOLD = 10;
 
-type Screen = "profile" | "notifications" | "privacy" | "about";
+type Screen = "profile" | "notifications" | "privacy" | "about" | "flagged";
 
 export function ProfileView() {
-  const { myCodes, resetAccount } = useBathroomStore();
+  const { myCodes, bathrooms, resetAccount } = useBathroomStore();
   const [screen, setScreen] = useState<Screen>("profile");
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -39,6 +40,7 @@ export function ProfileView() {
   const verifiedCount = myCodes.filter((b) => b.isVerified).length;
   const isTrustedContributor =
     myCodes.length > 0 && totalUpvotes - totalFlags * 2 >= TRUSTED_CONTRIBUTOR_THRESHOLD;
+  const flaggedCount = bathrooms.filter((b) => b.flagCount > 0).length;
 
   const onFileChosen = (file: File | undefined) => {
     if (!file) return;
@@ -58,6 +60,9 @@ export function ProfileView() {
   }
   if (screen === "about") {
     return <AboutView onBack={() => setScreen("profile")} />;
+  }
+  if (screen === "flagged") {
+    return <AdminFlaggedView onBack={() => setScreen("profile")} />;
   }
 
   return (
@@ -112,6 +117,12 @@ export function ProfileView() {
           <SettingsRow icon="🔒" label="Privacy settings" onClick={() => setScreen("privacy")} />
           <div className="profile-view__settings-divider" />
           <SettingsRow icon="ℹ️" label="About LooCodes" onClick={() => setScreen("about")} />
+          <div className="profile-view__settings-divider" />
+          <SettingsRow
+            icon="🚩"
+            label={`Flagged Reports${flaggedCount > 0 ? ` (${flaggedCount})` : ""}`}
+            onClick={() => setScreen("flagged")}
+          />
           <div className="profile-view__settings-divider" />
           <SettingsRow icon="🚪" label="Logout" onClick={() => setShowLogoutConfirm(true)} />
         </div>

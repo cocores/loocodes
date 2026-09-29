@@ -10,6 +10,7 @@ import {
 import type { Bathroom, NewBathroom } from "../types";
 import { isFirebaseConfigured } from "../lib/firebase";
 import {
+  clearFlag as clearFlagInFirestore,
   createBathroom,
   flagBathroom,
   subscribeToBathrooms,
@@ -18,7 +19,12 @@ import {
 } from "../lib/firestoreBathrooms";
 import { getUserId, resetUserId } from "../lib/anonymousUser";
 import { clearFlaggedLocally, markFlaggedLocally, readFlaggedIds } from "../lib/flaggedTracker";
-import { clearVotedUpLocally, markVotedUpLocally, readVotedUpIds } from "../lib/votedUpTracker";
+import {
+  clearVotedUpLocally,
+  markVotedUpLocally,
+  readVotedUpIds,
+  unmarkVotedUpLocally,
+} from "../lib/votedUpTracker";
 import { SEED_BATHROOMS } from "./seed";
 
 const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
@@ -61,6 +67,10 @@ interface BathroomStoreValue {
   add: (bathroom: NewBathroom) => Promise<void>;
   voteUp: (id: string) => Promise<void>;
   flag: (id: string) => Promise<void>;
+  /** Admin action (see views/AdminFlaggedView.tsx) — resets a listing's flag
+   * count once a report's been reviewed. No real auth/admin role exists in
+   * this app; the security rules narrowly scope what this can touch. */
+  clearFlag: (id: string) => Promise<void>;
   suggest: (id: string, text: string) => Promise<void>;
   /** Which bathrooms *this device* has voted up / flagged — hasVotedUp and
    * flagCount on the bathroom document itself are shared aggregates, not
@@ -174,6 +184,14 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       // repeat visits keep lastConfirmedAt (and the trust score it feeds)
       // fresh. votedUpIds only drives the "✓ Works!" styling below, it's
       // never used to block the click.
+      //
+      // Marked *before* the network call, not after: under a slow or flaky
+      // connection the write's Promise can take a long time (or hang
+      // outright) to settle, and marking only on success left the button
+      // looking like the click hadn't done anything at all in the meantime.
+      markVotedUpLocally(id);
+      setVotedUpIds((prev) => new Set(prev).add(id));
+
       if (isOffline) {
         setBathrooms((prev) =>
           prev.map((b) =>
@@ -182,14 +200,10 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
               : b,
           ),
         );
-        markVotedUpLocally(id);
-        setVotedUpIds((prev) => new Set(prev).add(id));
         return;
       }
       try {
         await voteUpBathroom(id);
-        markVotedUpLocally(id);
-        setVotedUpIds((prev) => new Set(prev).add(id));
       } catch (err) {
         console.error("Failed to vote up bathroom", err);
       }
@@ -201,23 +215,48 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (flaggedIds.has(id)) return;
 
+      // Same reasoning as voteUp: mark locally before awaiting the network.
+      // A flag also resets this device's own "It Works" confirmation for the
+      // same listing — flagging is a signal that a prior "it works" tap may
+      // no longer hold, so the two shouldn't show as both checked at once.
+      markFlaggedLocally(id);
+      setFlaggedIds((prev) => new Set(prev).add(id));
+      unmarkVotedUpLocally(id);
+      setVotedUpIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+
       if (isOffline) {
         setBathrooms((prev) =>
-          prev.map((b) => (b.id === id ? { ...b, flagCount: b.flagCount + 1 } : b)),
+          prev.map((b) => (b.id === id ? { ...b, flagCount: b.flagCount + 1, hasVotedUp: false } : b)),
         );
-        markFlaggedLocally(id);
-        setFlaggedIds((prev) => new Set(prev).add(id));
         return;
       }
       try {
         await flagBathroom(id);
-        markFlaggedLocally(id);
-        setFlaggedIds((prev) => new Set(prev).add(id));
       } catch (err) {
         console.error("Failed to flag bathroom", err);
       }
     },
     [isOffline, flaggedIds],
+  );
+
+  const clearFlag = useCallback(
+    async (id: string) => {
+      if (isOffline) {
+        setBathrooms((prev) => prev.map((b) => (b.id === id ? { ...b, flagCount: 0 } : b)));
+        return;
+      }
+      try {
+        await clearFlagInFirestore(id);
+      } catch (err) {
+        console.error("Failed to clear flag", err);
+      }
+    },
+    [isOffline],
   );
 
   const suggest = useCallback(
@@ -270,6 +309,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       add,
       voteUp,
       flag,
+      clearFlag,
       suggest,
       votedUpIds,
       flaggedIds,
@@ -284,6 +324,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       add,
       voteUp,
       flag,
+      clearFlag,
       suggest,
       votedUpIds,
       flaggedIds,

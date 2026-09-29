@@ -82,6 +82,14 @@ export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coord
   // collapsible section below, which shows its own count).
   const localCount = grouped ? grouped.closeBy.length + grouped.furtherAway.length : filtered.length;
 
+  // Same scoping, applied to the map: fitting bounds to every bathroom
+  // (including ones a continent away) zooms out so far that pins from
+  // unrelated cities land on the same handful of screen pixels, making a tap
+  // resolve to whichever marker happens to be on top instead of the one the
+  // user meant. Restricting the map to the local area keeps pins far enough
+  // apart to actually be tappable.
+  const mapBathrooms = grouped ? [...grouped.closeBy, ...grouped.furtherAway] : filtered;
+
   return (
     <div className="screen list-view">
       <header className="list-view__header">
@@ -139,7 +147,7 @@ export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coord
         // Rendered even with zero matches (unlike the list branches below) —
         // an empty map is exactly where "tap to add a bathroom" is most useful.
         <BathroomsMap
-          bathrooms={filtered}
+          bathrooms={mapBathrooms}
           userLocation={location}
           onSelect={setSelected}
           onMapClick={onAddAtLocation}

@@ -15,12 +15,12 @@ service cloud.firestore {
 
       allow create: if isValidNewBathroom();
 
-      // Only three narrow transitions are allowed — direct edits to name,
+      // Only four narrow transitions are allowed — direct edits to name,
       // code, address, etc. are rejected. That's deliberate: this app treats
       // corrections as proposals (the `suggestions` array), never silent
       // overwrites, and there's no ownership model to safely arbitrate who's
       // allowed to edit an existing listing's core fields.
-      allow update: if isVoteUpdate() || isFlagUpdate() || isSuggestionUpdate();
+      allow update: if isVoteUpdate() || isFlagUpdate() || isFlagClearUpdate() || isSuggestionUpdate();
 
       allow delete: if false;
 
@@ -65,8 +65,28 @@ service cloud.firestore {
       function isFlagUpdate() {
         let before = resource.data;
         let after = request.resource.data;
+        // hasVotedUp may optionally be reset to false in the same update —
+        // flagging something is a signal that a prior "It Works" confirmation
+        // may no longer hold, but it's never allowed to flip the other way
+        // (a flag update can't be used to sneak through a vote).
+        return after.diff(before).affectedKeys().hasOnly(['flagCount', 'hasVotedUp'])
+          && after.flagCount == before.flagCount + 1
+          && (after.hasVotedUp == before.hasVotedUp || after.hasVotedUp == false);
+      }
+
+      // Lets a reviewer (see web/src/views/AdminFlaggedView.tsx — there's no
+      // real auth/admin role in this app, so this is only a soft gate, not a
+      // security boundary) mark a flagged report as resolved. Deliberately
+      // narrow: only a reset from a positive count back to exactly zero, and
+      // nothing else about the document, which keeps it clearly distinct from
+      // isFlagUpdate() above rather than a general-purpose "set flagCount to
+      // anything" hole.
+      function isFlagClearUpdate() {
+        let before = resource.data;
+        let after = request.resource.data;
         return after.diff(before).affectedKeys().hasOnly(['flagCount'])
-          && after.flagCount == before.flagCount + 1;
+          && before.flagCount > 0
+          && after.flagCount == 0;
       }
 
       function isSuggestionUpdate() {

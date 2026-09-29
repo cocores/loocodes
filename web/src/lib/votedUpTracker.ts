@@ -24,6 +24,14 @@ export function markVotedUpLocally(id: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
 }
 
+/** Reverses a single id's local confirmation — used when this device flags a
+ * listing, since a flag means a prior "It Works" tap may no longer hold. */
+export function unmarkVotedUpLocally(id: string): void {
+  const ids = readIds();
+  if (!ids.delete(id)) return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+}
+
 export function clearVotedUpLocally(): void {
   localStorage.removeItem(STORAGE_KEY);
 }

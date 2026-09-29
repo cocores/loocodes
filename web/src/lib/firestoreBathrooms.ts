@@ -185,6 +185,22 @@ export async function flagBathroom(id: string): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, COLLECTION, id), {
     flagCount: increment(1),
+    // A flag is a signal that a prior "It Works" confirmation may no longer
+    // hold, so it resets the shared confirmed-state back to unconfirmed —
+    // matched by resetting this device's own local vote history alongside
+    // the flag() call in BathroomStoreContext.
+    hasVotedUp: false,
+  });
+}
+
+/** Resets a listing's flag count once a reviewer has looked into the report
+ * (see views/AdminFlaggedView.tsx). There's no real auth/admin role in this
+ * app, so this is a soft, honor-system gate — the security rules only
+ * guarantee it's narrowly a flagCount reset to zero, nothing else. */
+export async function clearFlag(id: string): Promise<void> {
+  const db = getDb();
+  await updateDoc(doc(db, COLLECTION, id), {
+    flagCount: 0,
   });
 }
 
