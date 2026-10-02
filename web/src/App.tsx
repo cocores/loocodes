@@ -32,7 +32,11 @@ function AuthGate() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="screen app__loading" />;
+    return (
+      <div className="screen app__loading">
+        <div className="app__spinner" />
+      </div>
+    );
   }
   if (!user) {
     return <LoginView />;

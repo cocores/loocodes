@@ -38,7 +38,12 @@ private struct AuthGate: View {
 
     var body: some View {
         if authService.isLoading {
-            Color(hex: "1a1a1f").ignoresSafeArea()
+            ZStack {
+                Color(hex: "1a1a1f").ignoresSafeArea()
+                ProgressView()
+                    .tint(Color(hex: "5b9ef5"))
+                    .scaleEffect(1.4)
+            }
         } else if let user = authService.user {
             AuthenticatedRootView(uid: user.uid)
         } else {

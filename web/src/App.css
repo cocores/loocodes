@@ -49,6 +49,24 @@
 
 .app__loading {
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app__spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  animation: app-spin 0.8s linear infinite;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .app__offline-banner code {
