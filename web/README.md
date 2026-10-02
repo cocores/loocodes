@@ -147,6 +147,39 @@ connectivity returns).
 Redeploy the app once the env vars are set and providers are enabled — the
 login screen should let you sign in and the app loads normally from there.
 
+### Sign-in silently bounces back to /login (no error shown)
+
+This happens when `VITE_FIREBASE_AUTH_DOMAIN` is set to the default
+`YOUR_PROJECT_ID.firebaseapp.com` while the app itself is served from a
+different domain (any Vercel domain, custom or not). Completing sign-in —
+whether via popup or redirect — needs a round trip through that auth
+domain, and since it's a different origin than the app, the browser treats
+the cookies/storage involved as third-party and increasingly blocks them by
+default (Safari especially, on both desktop and mobile, but not only
+Safari). The sign-in call itself doesn't error — `getRedirectResult()`/the
+popup's result just silently comes back empty, and the user lands back on
+`/login` with no explanation.
+
+The fix: make the auth domain match the app's own domain.
+`vercel.json`'s rewrites already proxy `/__/auth/*` to Firebase's actual
+handler at `loo-codes-bc914.firebaseapp.com` behind the scenes — the only
+remaining step is pointing the SDK at your own domain instead:
+
+1. In Vercel → Project Settings → Environment Variables, set
+   `VITE_FIREBASE_AUTH_DOMAIN` to your app's actual production domain
+   (e.g. `loocodes.vercel.app`, or your custom domain if you have one) —
+   **not** `loo-codes-bc914.firebaseapp.com`.
+2. Confirm that same domain is also in Firebase's Authentication →
+   Settings → Authorized domains (it needs to be there either way, so if
+   you've already hit the `auth/unauthorized-domain` error and fixed it,
+   this part's likely already done).
+3. Redeploy.
+
+This only fully works for one stable domain baked in at build time — if
+Vercel gives every preview deploy its own unique `*.vercel.app` URL, those
+previews will still hit the cross-origin issue unless you test sign-in
+against the production domain specifically.
+
 ## Maps (Leaflet + OpenStreetMap)
 
 Maps and address search use free, no-API-key services — nothing to
