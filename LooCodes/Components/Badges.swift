@@ -3,7 +3,7 @@ import SwiftUI
 struct TypeBadge: View {
     let type: BathroomType
     var body: some View {
-        Text("\(type.emoji) \(type.rawValue)")
+        Text("\(type.emoji) \(type.label)")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 8)

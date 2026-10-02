@@ -127,6 +127,9 @@ struct PermissionSheet: View {
 
 // MARK: - Privacy Settings
 struct PrivacySettingsView: View {
+    @Environment(BathroomStore.self) var store
+    @Environment(\.dismiss) var dismiss
+
     @State private var preciseLocation    = true
     @State private var backgroundLocation = false
     @State private var analytics          = false
@@ -160,22 +163,26 @@ struct PrivacySettingsView: View {
         .navigationTitle("Privacy")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Delete Account?", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {}
+            Button("Delete", role: .destructive) {
+                store.resetAccount()
+                dismiss()
+            }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently deletes your account and all codes you've shared.")
+            Text("This resets your account on this device. Codes you've already shared stay public for others to use — they just won't show under \"My Codes\" anymore.")
         }
     }
 }
 
 // MARK: - About LooCodes
 struct AboutView: View {
+    @Environment(BathroomStore.self) var store
+
     var body: some View {
         List {
             Section("App Info") {
                 LabeledContent("Version", value: "1.0.0 (1)")
-                LabeledContent("Bathrooms indexed", value: "12,847")
-                LabeledContent("Cities covered", value: "284")
+                LabeledContent("Bathrooms indexed", value: "\(store.bathrooms.count)")
             }
 
             Section("Legal") {

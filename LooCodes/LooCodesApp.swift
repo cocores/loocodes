@@ -1,9 +1,14 @@
+import FirebaseCore
 import SwiftUI
 
 @main
 struct LooCodesApp: App {
     @State private var store = BathroomStore()
     @State private var locationService = LocationService()
+
+    init() {
+        FirebaseApp.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +19,7 @@ struct LooCodesApp: App {
                 .onAppear {
                     locationService.requestPermission()
                     locationService.startUpdating()
+                    store.start()
                 }
         }
     }

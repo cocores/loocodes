@@ -33,7 +33,7 @@ struct BathroomListView: View {
                             selectedType = nil; adaOnly = false
                         }
                         ForEach(BathroomType.allCases) { t in
-                            FilterChip("\(t.emoji) \(t.rawValue)", isSelected: selectedType == t) {
+                            FilterChip("\(t.emoji) \(t.label)", isSelected: selectedType == t) {
                                 selectedType = (selectedType == t) ? nil : t
                             }
                         }
@@ -102,6 +102,8 @@ struct BathroomCard: View {
     private var current: Bathroom {
         store.bathrooms.first { $0.id == bathroom.id } ?? bathroom
     }
+    private var alreadyVotedUp: Bool { store.votedUpIds.contains(current.id) }
+    private var alreadyFlagged: Bool { store.flaggedIds.contains(current.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -160,38 +162,38 @@ struct BathroomCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            // Vote buttons — mutually exclusive
+            // "It Works" always stays clickable (each tap is a fresh
+            // reconfirmation) and is independent of flagging — flagging only
+            // disables itself, once per device, and resets this device's own
+            // "It Works" check rather than blocking the other button.
             HStack(spacing: 10) {
                 Button {
                     store.voteUp(current.id)
                 } label: {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(current.hasVotedUp ? Color(hex: "5b9ef5") : Color(hex: "5b9ef5").opacity(0.3))
+                            .fill(alreadyVotedUp ? Color(hex: "5b9ef5") : Color(hex: "5b9ef5").opacity(0.3))
                             .frame(width: 8, height: 8)
-                        Text(current.hasVotedUp ? "✓ Works!" : "It Works")
+                        Text(alreadyVotedUp ? "✓ Works!" : "It Works")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(current.hasVotedUp ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                            .foregroundStyle(alreadyVotedUp ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(current.hasVotedUp ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
+                    .background(alreadyVotedUp ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .disabled(current.hasVotedUp || current.hasFlagged)
-                .opacity(current.hasFlagged ? 0.3 : 1)
 
                 Button {
                     store.flag(current.id)
                 } label: {
-                    Image(systemName: current.hasFlagged ? "flag.fill" : "flag")
-                        .foregroundStyle(current.hasFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
+                    Image(systemName: alreadyFlagged ? "flag.fill" : "flag")
+                        .foregroundStyle(alreadyFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
                         .frame(width: 44, height: 44)
-                        .background(current.hasFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
+                        .background(alreadyFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .disabled(current.hasVotedUp || current.hasFlagged)
-                .opacity(current.hasVotedUp ? 0.3 : 1)
+                .disabled(alreadyFlagged)
             }
         }
         .padding(14)

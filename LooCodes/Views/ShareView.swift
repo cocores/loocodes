@@ -32,6 +32,7 @@ struct ShareView: View {
     @State private var isPublishing = false
     @State private var publishStep  = 0
     @State private var published    = false
+    @State private var publishError: String? = nil
     @State private var newBathroom: Bathroom? = nil
 
     private let publishSteps = [
@@ -62,7 +63,7 @@ struct ShareView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(BathroomType.allCases) { t in
-                                    FilterChip("\(t.emoji) \(t.rawValue)", isSelected: type == t) {
+                                    FilterChip("\(t.emoji) \(t.label)", isSelected: type == t) {
                                         type = t
                                     }
                                 }
@@ -137,8 +138,14 @@ struct ShareView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .disabled(!canShare)
-                    .padding(.bottom, 24)
+
+                    if let publishError {
+                        Text("⚠ \(publishError)")
+                            .font(.caption)
+                            .foregroundStyle(Color(hex: "ff4d4f"))
+                    }
                 }
+                .padding(.bottom, 24)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             }
@@ -230,16 +237,26 @@ struct ShareView: View {
             coord = CLLocationCoordinate2D(latitude: 40.7580, longitude: -73.9855)
         }
 
-        let b = Bathroom(
+        let draft = NewBathroomDraft(
             name: name,
             address: address.isEmpty ? "Shared location" : address,
             code: code, type: type,
             isADAAccessible: isADA, isFree: isFree, feeAmount: feeAmount,
             note: note, latitude: coord.latitude, longitude: coord.longitude,
-            submittedBy: "current_user"
+            submittedBy: LocalInteractionTracker.userId(),
+            rating: 3
         )
 
-        newBathroom = b
+        // Preview-only, for the overlay's summary card — never written
+        // anywhere itself; the real document (with its real id) comes back
+        // from store.add(draft) once the write actually succeeds.
+        newBathroom = Bathroom(
+            id: "pending", name: draft.name, address: draft.address, code: draft.code,
+            type: draft.type, isADAAccessible: draft.isADAAccessible, isFree: draft.isFree,
+            feeAmount: draft.feeAmount, note: draft.note, latitude: draft.latitude,
+            longitude: draft.longitude, submittedBy: draft.submittedBy
+        )
+        publishError = nil
         withAnimation { isPublishing = true }
         publishStep = 0
 
@@ -249,11 +266,17 @@ struct ShareView: View {
             }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(publishSteps.count + 1) * 0.75) {
-            store.add(b)
-            withAnimation { published = true }
-            // Reset form
-            name = ""; code = ""; note = ""; address = ""
-            isFree = true; isADA = false; droppedPin = nil; feeAmount = ""
+            Task {
+                guard await store.add(draft) != nil else {
+                    isPublishing = false
+                    publishError = "Failed to publish code. Check your connection and try again."
+                    return
+                }
+                withAnimation { published = true }
+                // Reset form
+                name = ""; code = ""; note = ""; address = ""
+                isFree = true; isADA = false; droppedPin = nil; feeAmount = ""
+            }
         }
     }
 }

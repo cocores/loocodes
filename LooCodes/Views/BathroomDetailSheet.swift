@@ -7,10 +7,14 @@ struct BathroomDetailSheet: View {
 
     let bathroom: Bathroom
     @State private var copied = false
+    @State private var showSuggestForm = false
+    @State private var suggestionText = ""
 
     private var current: Bathroom {
         store.bathrooms.first { $0.id == bathroom.id } ?? bathroom
     }
+    private var alreadyVotedUp: Bool { store.votedUpIds.contains(current.id) }
+    private var alreadyFlagged: Bool { store.flaggedIds.contains(current.id) }
 
     var body: some View {
         ScrollView {
@@ -114,40 +118,40 @@ struct BathroomDetailSheet: View {
                         .foregroundStyle(Color(hex: "8888aa"))
                 }
 
-                // Vote buttons — mutually exclusive
+                // "It Works" always stays clickable (each tap is a fresh
+                // reconfirmation) and is independent of flagging — flagging
+                // only disables itself, once per device, and resets this
+                // device's own "It Works" check rather than blocking it.
                 HStack(spacing: 12) {
                     Button {
                         store.voteUp(current.id)
                     } label: {
-                        Label(current.hasVotedUp ? "✓ Works!" : "It Works",
-                              systemImage: current.hasVotedUp ? "hand.thumbsup.fill" : "hand.thumbsup")
+                        Label(alreadyVotedUp ? "✓ Works!" : "It Works",
+                              systemImage: alreadyVotedUp ? "hand.thumbsup.fill" : "hand.thumbsup")
                             .font(.headline.weight(.semibold))
-                            .foregroundStyle(current.hasVotedUp ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                            .foregroundStyle(alreadyVotedUp ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(current.hasVotedUp ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
+                            .background(alreadyVotedUp ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .disabled(current.hasVotedUp || current.hasFlagged)
-                    .opacity(current.hasFlagged ? 0.3 : 1)
 
                     Button {
                         store.flag(current.id)
                     } label: {
-                        Label(current.hasFlagged ? "Flagged" : "Flag Stale",
-                              systemImage: current.hasFlagged ? "flag.fill" : "flag")
+                        Label(alreadyFlagged ? "Flagged" : "Flag Stale",
+                              systemImage: alreadyFlagged ? "flag.fill" : "flag")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(current.hasFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
+                            .foregroundStyle(alreadyFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
                             .padding(.horizontal, 16).padding(.vertical, 14)
-                            .background(current.hasFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
+                            .background(alreadyFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(Color(hex: "3a3a4a"), lineWidth: 0.5)
                             )
                     }
-                    .disabled(current.hasVotedUp || current.hasFlagged)
-                    .opacity(current.hasVotedUp ? 0.3 : 1)
+                    .disabled(alreadyFlagged)
                 }
 
                 // Opens Apple Maps with walking directions already started,
@@ -173,6 +177,68 @@ struct BathroomDetailSheet: View {
                                 .strokeBorder(Color(hex: "3a3a4a"), lineWidth: 0.5)
                         )
                 }
+
+                // Suggested updates
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Suggested Updates")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Spacer()
+                        if !showSuggestForm {
+                            Button("+ Suggest an update") { showSuggestForm = true }
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color(hex: "5b9ef5"))
+                        }
+                    }
+
+                    if showSuggestForm {
+                        VStack(alignment: .leading, spacing: 8) {
+                            TextField(
+                                "e.g. Code changed to 5555, or the door is locked after 8pm…",
+                                text: $suggestionText,
+                                axis: .vertical
+                            )
+                            .lineLimit(2, reservesSpace: true)
+                            .textFieldStyle(DarkTextFieldStyle())
+
+                            HStack {
+                                Button("Cancel") {
+                                    showSuggestForm = false
+                                    suggestionText = ""
+                                }
+                                .foregroundStyle(Color(hex: "8888aa"))
+                                Spacer()
+                                Button("Submit") {
+                                    store.suggest(current.id, text: suggestionText)
+                                    suggestionText = ""
+                                    showSuggestForm = false
+                                }
+                                .disabled(suggestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color(hex: "5b9ef5"))
+                            }
+                        }
+                    }
+
+                    if current.suggestions.isEmpty {
+                        Text("No suggested updates yet.")
+                            .font(.caption)
+                            .foregroundStyle(Color(hex: "8888aa"))
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(current.suggestions.sorted(by: { $0.createdAt > $1.createdAt })) { s in
+                                Text(s.text)
+                                    .font(.caption)
+                                    .foregroundStyle(Color(hex: "aaaacc"))
+                            }
+                        }
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "252530"))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding(20)
         }
