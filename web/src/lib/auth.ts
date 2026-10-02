@@ -2,8 +2,9 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   deleteUser,
+  getRedirectResult,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from "firebase/auth";
@@ -13,22 +14,39 @@ import { getDb, getFirebaseAuth } from "./firebase";
 export type { User };
 
 export function subscribeToAuthState(onChange: (user: User | null) => void): () => void {
-  return onAuthStateChanged(getFirebaseAuth(), onChange);
+  return onAuthStateChanged(getFirebaseAuth(), (user) => {
+    // Fires for every way a user ends up signed in (redirect completion,
+    // a session restored from a previous visit, emulator state, etc.) —
+    // ensureUserProfile is idempotent (checks existence first), so calling
+    // it here unconditionally is simpler and more robust than trying to
+    // call it only right after a fresh sign-in.
+    if (user) void ensureUserProfile(user);
+    onChange(user);
+  });
 }
 
-export async function signInWithGoogle(): Promise<User> {
-  const credential = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
-  await ensureUserProfile(credential.user);
-  return credential.user;
+// signInWithPopup is unreliable on mobile Safari (iOS can't reliably open a
+// true popup window or message back to the opener tab — the user ends up
+// stranded on Firebase's auth handler page with "The requested action is
+// invalid"). signInWithRedirect works everywhere, including desktop, at
+// the cost of a full-page navigation away and back.
+export async function signInWithGoogle(): Promise<void> {
+  await signInWithRedirect(getFirebaseAuth(), new GoogleAuthProvider());
 }
 
-export async function signInWithApple(): Promise<User> {
+export async function signInWithApple(): Promise<void> {
   const provider = new OAuthProvider("apple.com");
   provider.addScope("email");
   provider.addScope("name");
-  const credential = await signInWithPopup(getFirebaseAuth(), provider);
-  await ensureUserProfile(credential.user);
-  return credential.user;
+  await signInWithRedirect(getFirebaseAuth(), provider);
+}
+
+/** Call once on app load to surface any error from a sign-in redirect that
+ * just completed (e.g. auth/account-exists-with-different-credential) —
+ * profile creation itself is handled by subscribeToAuthState above, this
+ * is only for errors getRedirectResult would otherwise throw silently. */
+export async function completeRedirectSignIn(): Promise<void> {
+  await getRedirectResult(getFirebaseAuth());
 }
 
 export async function signOutUser(): Promise<void> {

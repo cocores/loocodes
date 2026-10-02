@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { isFirebaseConfigured } from "../lib/firebase";
 import {
+  completeRedirectSignIn,
   deleteAccount,
   signInWithApple,
   signInWithGoogle,
@@ -34,6 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return;
     }
+    // Surfaces an error from a sign-in redirect that just completed (e.g.
+    // the same email already exists under a different provider) — a
+    // successful sign-in doesn't need anything from this, it's picked up
+    // by the onAuthStateChanged listener below like any other session.
+    completeRedirectSignIn().catch((err) => {
+      setError(err instanceof Error ? err.message : "Sign-in failed. Please try again.");
+    });
     const unsubscribe = subscribeToAuthState((u) => {
       setUser(u);
       setIsLoading(false);
