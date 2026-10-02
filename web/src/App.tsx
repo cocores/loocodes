@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./store/AuthContext";
 import { BathroomStoreProvider, useBathroomStore } from "./store/BathroomStoreContext";
 import type { Coordinate } from "./hooks/useLocation";
@@ -19,28 +20,42 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 function App() {
   return (
     <AuthProvider>
-      <AuthGate />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/*" element={<ProtectedRoute />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
 
+function LoadingScreen() {
+  return (
+    <div className="screen app__loading">
+      <div className="app__spinner" />
+    </div>
+  );
+}
+
 // The app requires a signed-in account now — there's no more anonymous/
-// no-login mode. A signed-out visitor only ever sees LoginView; everything
-// else (including BathroomStoreProvider, which needs a real uid) only
-// mounts once a user exists.
-function AuthGate() {
+// no-login mode. /login is its own route (not just a conditionally-rendered
+// view at "/") so it has a real, linkable/bookmarkable URL distinct from the
+// app itself, and so the browser's back button, Google's redirect-back
+// target, and a direct refresh all behave the way a normal page would.
+function LoginRoute() {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="screen app__loading">
-        <div className="app__spinner" />
-      </div>
-    );
-  }
-  if (!user) {
-    return <LoginView />;
-  }
+  if (isLoading) return <LoadingScreen />;
+  if (user) return <Navigate to="/" replace />;
+  return <LoginView />;
+}
+
+function ProtectedRoute() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
   return (
     <BathroomStoreProvider>
       <MainApp />
