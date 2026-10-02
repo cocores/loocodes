@@ -4,8 +4,10 @@ import {
   deleteUser,
   getRedirectResult,
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
+  type AuthProvider as FirebaseAuthProvider,
   type User,
 } from "firebase/auth";
 import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
@@ -15,30 +17,67 @@ export type { User };
 
 export function subscribeToAuthState(onChange: (user: User | null) => void): () => void {
   return onAuthStateChanged(getFirebaseAuth(), (user) => {
-    // Fires for every way a user ends up signed in (redirect completion,
-    // a session restored from a previous visit, emulator state, etc.) —
-    // ensureUserProfile is idempotent (checks existence first), so calling
-    // it here unconditionally is simpler and more robust than trying to
-    // call it only right after a fresh sign-in.
+    // Fires for every way a user ends up signed in (popup, redirect
+    // completion, a session restored from a previous visit, emulator
+    // state, etc.) — ensureUserProfile is idempotent (checks existence
+    // first), so calling it here unconditionally is simpler and more
+    // robust than trying to call it only right after a fresh sign-in.
     if (user) void ensureUserProfile(user);
     onChange(user);
   });
 }
 
-// signInWithPopup is unreliable on mobile Safari (iOS can't reliably open a
-// true popup window or message back to the opener tab — the user ends up
-// stranded on Firebase's auth handler page with "The requested action is
-// invalid"). signInWithRedirect works everywhere, including desktop, at
-// the cost of a full-page navigation away and back.
+// Neither popup nor redirect is reliable everywhere, so pick per device:
+//
+// - signInWithPopup breaks on mobile Safari — it can't reliably open a true
+//   popup window or message back to the opener tab, leaving the user
+//   stranded on Firebase's auth handler page ("The requested action is
+//   invalid") with no JS-catchable error at all.
+// - signInWithRedirect breaks silently on some desktop browsers/privacy
+//   settings — completing the round trip back from the provider needs a
+//   cross-origin relay to Firebase's authDomain (a different origin than
+//   this app), which browsers increasingly block as third-party storage
+//   access by default. No error is thrown either; getRedirectResult()
+//   just resolves with no user, same as if nothing had happened.
+//
+// Popup is the better default where it's known to work (desktop), redirect
+// is used where popup is known to be broken (mobile).
+function prefersRedirect(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod|Android|Mobi/i.test(navigator.userAgent);
+}
+
+async function signIn(provider: FirebaseAuthProvider): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (prefersRedirect()) {
+    await signInWithRedirect(auth, provider);
+    return;
+  }
+  try {
+    const credential = await signInWithPopup(auth, provider);
+    await ensureUserProfile(credential.user);
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    // Desktop Safari/Firefox with strict popup settings, or a user who
+    // dismissed the popup and should get a cleaner second attempt via
+    // redirect rather than a dead end.
+    if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+    throw err;
+  }
+}
+
 export async function signInWithGoogle(): Promise<void> {
-  await signInWithRedirect(getFirebaseAuth(), new GoogleAuthProvider());
+  await signIn(new GoogleAuthProvider());
 }
 
 export async function signInWithApple(): Promise<void> {
   const provider = new OAuthProvider("apple.com");
   provider.addScope("email");
   provider.addScope("name");
-  await signInWithRedirect(getFirebaseAuth(), provider);
+  await signIn(provider);
 }
 
 /** Call once on app load to surface any error from a sign-in redirect that
