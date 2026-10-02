@@ -5,15 +5,27 @@ import Observation
 final class BathroomStore {
     var bathrooms: [Bathroom] = []
     var isLoading = true
-    /// Which bathrooms *this device* has voted up / flagged — see
-    /// LocalInteractionTracker for why this isn't read off the Firestore
-    /// document itself.
-    var votedUpIds: Set<String> = LocalInteractionTracker.votedIds()
-    var flaggedIds: Set<String> = LocalInteractionTracker.flaggedIds()
+
+    /// Set once from `start(uid:)` when this store is created for a signed-in
+    /// account (see LooCodesApp.swift) — every write needs it, so there's no
+    /// meaningful state this store can be in without one.
+    private(set) var uid: String = ""
 
     private var listener: ListenerRegistration?
 
-    func start() {
+    /// Which bathrooms the signed-in account has voted up / flagged —
+    /// derived from each bathroom's own `voters`/`flaggers` array rather
+    /// than device-local storage, so it's consistent across every device
+    /// this account signs into.
+    var votedUpIds: Set<String> {
+        Set(bathrooms.filter { $0.voters.contains(uid) }.map(\.id))
+    }
+    var flaggedIds: Set<String> {
+        Set(bathrooms.filter { $0.flaggers.contains(uid) }.map(\.id))
+    }
+
+    func start(uid: String) {
+        self.uid = uid
         guard listener == nil else { return }
         listener = FirestoreService.subscribe(
             onData: { [weak self] list in
@@ -42,8 +54,7 @@ final class BathroomStore {
     }
 
     func myCodes() -> [Bathroom] {
-        let userId = LocalInteractionTracker.userId()
-        return bathrooms.filter { $0.submittedBy == userId }
+        bathrooms.filter { $0.submittedBy == uid }
     }
 
     @discardableResult
@@ -60,37 +71,43 @@ final class BathroomStore {
     }
 
     /// "It Works" is a reconfirmation, not a one-time toggle — it should
-    /// always be clickable, even after this device already voted, so repeat
-    /// visits keep lastConfirmedAt fresh. Marked locally *before* the
-    /// network call, not after: a slow connection's write can take a long
-    /// time to settle, and marking only on success left the button looking
-    /// unresponsive in the meantime (same bug already fixed on the web app).
+    /// always be clickable, even after this account already voted, so
+    /// repeat visits keep lastConfirmedAt fresh. Patched into local state
+    /// *before* the network call, not after: a slow connection's write can
+    /// take a long time to settle, and waiting for it left the button
+    /// looking unresponsive in the meantime. The next Firestore snapshot
+    /// reconciles this with the real values.
     func voteUp(_ id: String) {
-        LocalInteractionTracker.markVoted(id)
-        votedUpIds.insert(id)
+        patch(id) { b in
+            b.hasVotedUp = true
+            b.upvoteCount += 1
+            b.lastConfirmedAt = Int64(Date().timeIntervalSince1970 * 1000)
+            if !b.voters.contains(self.uid) { b.voters.append(self.uid) }
+        }
         Task {
             do {
-                try await FirestoreService.voteUp(id)
+                try await FirestoreService.voteUp(id, uid: self.uid)
             } catch {
                 print("Failed to vote up bathroom:", error)
             }
         }
     }
 
-    /// Flagging also resets this device's own "It Works" confirmation for
+    /// Flagging also resets this account's own "It Works" confirmation for
     /// the same listing — a flag is a signal that a prior confirmation may
     /// no longer hold, so the two shouldn't show as both checked at once.
-    /// Still one report per device: repeat taps on an already-flagged
+    /// Still one report per account: repeat taps on an already-flagged
     /// listing are a no-op.
     func flag(_ id: String) {
         guard !flaggedIds.contains(id) else { return }
-        LocalInteractionTracker.markFlagged(id)
-        flaggedIds.insert(id)
-        LocalInteractionTracker.unmarkVoted(id)
-        votedUpIds.remove(id)
+        patch(id) { b in
+            b.flagCount += 1
+            b.hasVotedUp = false
+            if !b.flaggers.contains(self.uid) { b.flaggers.append(self.uid) }
+        }
         Task {
             do {
-                try await FirestoreService.flag(id)
+                try await FirestoreService.flag(id, uid: self.uid)
             } catch {
                 print("Failed to flag bathroom:", error)
             }
@@ -103,6 +120,10 @@ final class BathroomStore {
     /// real auth/admin role in this app, so this is a soft, honor-system
     /// gate; firestore.rules narrowly scopes what it can touch.
     func clearFlag(_ id: String) {
+        patch(id) { b in
+            b.flagCount = 0
+            b.flaggers = []
+        }
         Task {
             do {
                 try await FirestoreService.clearFlag(id)
@@ -115,20 +136,15 @@ final class BathroomStore {
     func suggest(_ id: String, text: String) {
         Task {
             do {
-                try await FirestoreService.suggest(id, text: text, submittedBy: LocalInteractionTracker.userId())
+                try await FirestoreService.suggest(id, text: text, submittedBy: self.uid)
             } catch {
                 print("Failed to submit suggestion:", error)
             }
         }
     }
 
-    /// Forgets this device's local identity (new anon id, cleared vote/flag
-    /// history). Does NOT touch any shared Firestore data — listings
-    /// already published stay public, they just stop showing under "My
-    /// Codes" for this device.
-    func resetAccount() {
-        LocalInteractionTracker.resetAccount()
-        votedUpIds = []
-        flaggedIds = []
+    private func patch(_ id: String, _ transform: (inout Bathroom) -> Void) {
+        guard let index = bathrooms.firstIndex(where: { $0.id == id }) else { return }
+        transform(&bathrooms[index])
     }
 }

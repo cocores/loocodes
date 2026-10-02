@@ -27,14 +27,21 @@ struct Bathroom: Identifiable, Equatable {
     var isZohranToilet: Bool = false
     var upvoteCount: Int = 0
     var rating: Double = 0
-    /// Shared Firestore aggregate (what the security rules pin true/false on
-    /// every vote/flag) — NOT the per-device "did I confirm this" signal.
-    /// That's tracked locally instead; see LocalInteractionTracker.
+    /// Shared Firestore aggregate — NOT the per-account "did I confirm
+    /// this" signal. That's `voters` below instead.
     var hasVotedUp: Bool = false
     var flagCount: Int = 0
     /// Epoch milliseconds of publish, or of the most recent "It Works" tap.
     var lastConfirmedAt: Int64 = 0
     var suggestions: [BathroomSuggestion] = []
+    /// uids who have tapped "It Works" at least once — a per-account
+    /// "already confirmed" UI signal, synced across every device this
+    /// account signs into. Repeat taps are allowed by design (see
+    /// BathroomStore.voteUp), so this is never used to block a vote.
+    var voters: [String] = []
+    /// uids who have flagged this listing — unlike voters, this DOES gate
+    /// flagCount increments: one flag per account, enforced by firestore.rules.
+    var flaggers: [String] = []
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)

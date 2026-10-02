@@ -17,14 +17,7 @@ import {
   suggestBathroomUpdate,
   voteUpBathroom,
 } from "../lib/firestoreBathrooms";
-import { getUserId, resetUserId } from "../lib/anonymousUser";
-import { clearFlaggedLocally, markFlaggedLocally, readFlaggedIds } from "../lib/flaggedTracker";
-import {
-  clearVotedUpLocally,
-  markVotedUpLocally,
-  readVotedUpIds,
-  unmarkVotedUpLocally,
-} from "../lib/votedUpTracker";
+import { useAuth } from "./AuthContext";
 import { SEED_BATHROOMS } from "./seed";
 
 const LOCAL_CACHE_KEY = "loocodes.bathrooms.local-fallback.v1";
@@ -72,30 +65,29 @@ interface BathroomStoreValue {
    * this app; the security rules narrowly scope what this can touch. */
   clearFlag: (id: string) => Promise<void>;
   suggest: (id: string, text: string) => Promise<void>;
-  /** Which bathrooms *this device* has voted up / flagged — hasVotedUp and
-   * flagCount on the bathroom document itself are shared aggregates, not
-   * per-user state, so per-device history is tracked here (backed by
-   * localStorage) instead. React state, not a raw tracker-function call, so
-   * that voting/flagging re-renders the button immediately instead of
-   * waiting on the next unrelated Firestore snapshot to happen to arrive. */
+  /** Which bathrooms the signed-in account has voted up / flagged — derived
+   * from each bathroom document's own `voters`/`flaggers` arrays rather than
+   * browser-local storage, so it's consistent across every device this
+   * account signs into. Recomputed from `bathrooms` on every change, with an
+   * optimistic patch applied immediately in voteUp/flag below so the button
+   * updates before the network write resolves. */
   votedUpIds: ReadonlySet<string>;
   flaggedIds: ReadonlySet<string>;
-  /** Forgets this browser's local identity (new anon id, cleared flag history).
-   * Does NOT touch any shared code data — codes already published stay public,
-   * they just stop showing under "My Codes" for this browser. */
-  resetAccount: () => void;
 }
 
 const BathroomStoreContext = createContext<BathroomStoreValue | null>(null);
 
 export function BathroomStoreProvider({ children }: { children: ReactNode }) {
+  // Only ever mounted once a user is signed in (see App.tsx's AuthGate) —
+  // every bathroom document now requires a real uid for ownership/voting/
+  // flagging, so there's nothing useful this provider can do without one.
+  const { user } = useAuth();
+  const uid = user?.uid ?? "";
+
   const [bathrooms, setBathrooms] = useState<Bathroom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [offlineReason, setOfflineReason] = useState<string | null>(null);
-  const [userId, setUserId] = useState(getUserId);
-  const [votedUpIds, setVotedUpIds] = useState<Set<string>>(() => readVotedUpIds());
-  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(() => readFlaggedIds());
 
   useEffect(() => {
     let cancelled = false;
@@ -177,79 +169,94 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
     [isOffline],
   );
 
+  // votedUpIds/flaggedIds are derived from the bathrooms themselves (each
+  // document's own `voters`/`flaggers` array) rather than tracked
+  // separately — this is what makes them consistent across every device
+  // this account signs into, instead of being per-browser.
+  const votedUpIds = useMemo(
+    () => new Set(bathrooms.filter((b) => (b.voters ?? []).includes(uid)).map((b) => b.id)),
+    [bathrooms, uid],
+  );
+  const flaggedIds = useMemo(
+    () => new Set(bathrooms.filter((b) => (b.flaggers ?? []).includes(uid)).map((b) => b.id)),
+    [bathrooms, uid],
+  );
+
   const voteUp = useCallback(
     async (id: string) => {
       // "It Works" is a reconfirmation, not a one-time toggle — it should
-      // always be clickable, even after this device has already voted, so
+      // always be clickable, even after this account has already voted, so
       // repeat visits keep lastConfirmedAt (and the trust score it feeds)
-      // fresh. votedUpIds only drives the "✓ Works!" styling below, it's
-      // never used to block the click.
+      // fresh. votedUpIds only drives the "✓ Works!" styling, it's never
+      // used to block the click.
       //
-      // Marked *before* the network call, not after: under a slow or flaky
-      // connection the write's Promise can take a long time (or hang
-      // outright) to settle, and marking only on success left the button
-      // looking like the click hadn't done anything at all in the meantime.
-      markVotedUpLocally(id);
-      setVotedUpIds((prev) => new Set(prev).add(id));
+      // Patched into local state *before* the network call, not after:
+      // under a slow or flaky connection the write's Promise can take a
+      // long time (or hang outright) to settle, and waiting for it left the
+      // button looking like the click hadn't done anything in the meantime.
+      // The next Firestore snapshot reconciles this with the real values.
+      setBathrooms((prev) =>
+        prev.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                hasVotedUp: true,
+                upvoteCount: b.upvoteCount + 1,
+                lastConfirmedAt: Date.now(),
+                voters: [...new Set([...(b.voters ?? []), uid])],
+              }
+            : b,
+        ),
+      );
 
-      if (isOffline) {
-        setBathrooms((prev) =>
-          prev.map((b) =>
-            b.id === id
-              ? { ...b, hasVotedUp: true, upvoteCount: b.upvoteCount + 1, lastConfirmedAt: Date.now() }
-              : b,
-          ),
-        );
-        return;
-      }
+      if (isOffline) return;
       try {
-        await voteUpBathroom(id);
+        await voteUpBathroom(id, uid);
       } catch (err) {
         console.error("Failed to vote up bathroom", err);
       }
     },
-    [isOffline],
+    [isOffline, uid],
   );
 
   const flag = useCallback(
     async (id: string) => {
       if (flaggedIds.has(id)) return;
 
-      // Same reasoning as voteUp: mark locally before awaiting the network.
-      // A flag also resets this device's own "It Works" confirmation for the
-      // same listing — flagging is a signal that a prior "it works" tap may
-      // no longer hold, so the two shouldn't show as both checked at once.
-      markFlaggedLocally(id);
-      setFlaggedIds((prev) => new Set(prev).add(id));
-      unmarkVotedUpLocally(id);
-      setVotedUpIds((prev) => {
-        if (!prev.has(id)) return prev;
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      // Same reasoning as voteUp: patch local state before awaiting the
+      // network. A flag also resets this account's own "It Works"
+      // confirmation for the same listing — flagging is a signal that a
+      // prior "it works" tap may no longer hold, so the two shouldn't show
+      // as both checked at once.
+      setBathrooms((prev) =>
+        prev.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                flagCount: b.flagCount + 1,
+                hasVotedUp: false,
+                flaggers: [...new Set([...(b.flaggers ?? []), uid])],
+              }
+            : b,
+        ),
+      );
 
-      if (isOffline) {
-        setBathrooms((prev) =>
-          prev.map((b) => (b.id === id ? { ...b, flagCount: b.flagCount + 1, hasVotedUp: false } : b)),
-        );
-        return;
-      }
+      if (isOffline) return;
       try {
-        await flagBathroom(id);
+        await flagBathroom(id, uid);
       } catch (err) {
         console.error("Failed to flag bathroom", err);
       }
     },
-    [isOffline, flaggedIds],
+    [isOffline, uid, flaggedIds],
   );
 
   const clearFlag = useCallback(
     async (id: string) => {
-      if (isOffline) {
-        setBathrooms((prev) => prev.map((b) => (b.id === id ? { ...b, flagCount: 0 } : b)));
-        return;
-      }
+      setBathrooms((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, flagCount: 0, flaggers: [] } : b)),
+      );
+      if (isOffline) return;
       try {
         await clearFlagInFirestore(id);
       } catch (err) {
@@ -261,43 +268,30 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
 
   const suggest = useCallback(
     async (id: string, text: string) => {
-      if (isOffline) {
-        setBathrooms((prev) =>
-          prev.map((b) =>
-            b.id === id
-              ? {
-                  ...b,
-                  suggestions: [
-                    ...b.suggestions,
-                    { id: crypto.randomUUID(), text, submittedBy: getUserId(), createdAt: Date.now() },
-                  ],
-                }
-              : b,
-          ),
-        );
-        return;
-      }
+      setBathrooms((prev) =>
+        prev.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                suggestions: [
+                  ...b.suggestions,
+                  { id: crypto.randomUUID(), text, submittedBy: uid, createdAt: Date.now() },
+                ],
+              }
+            : b,
+        ),
+      );
+      if (isOffline) return;
       try {
-        await suggestBathroomUpdate(id, text, getUserId());
+        await suggestBathroomUpdate(id, text, uid);
       } catch (err) {
         console.error("Failed to submit suggestion", err);
       }
     },
-    [isOffline],
+    [isOffline, uid],
   );
 
-  const myCodes = useMemo(
-    () => bathrooms.filter((b) => b.submittedBy === userId),
-    [bathrooms, userId],
-  );
-
-  const resetAccount = useCallback(() => {
-    clearFlaggedLocally();
-    clearVotedUpLocally();
-    setFlaggedIds(new Set());
-    setVotedUpIds(new Set());
-    setUserId(resetUserId());
-  }, []);
+  const myCodes = useMemo(() => bathrooms.filter((b) => b.submittedBy === uid), [bathrooms, uid]);
 
   const value = useMemo(
     () => ({
@@ -313,7 +307,6 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       suggest,
       votedUpIds,
       flaggedIds,
-      resetAccount,
     }),
     [
       bathrooms,
@@ -328,7 +321,6 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       suggest,
       votedUpIds,
       flaggedIds,
-      resetAccount,
     ],
   );
 

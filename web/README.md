@@ -10,16 +10,26 @@ npm install
 npm run dev
 ```
 
-Without a configured Firebase project (see below), the app falls back to
-local (per-browser, `localStorage`-backed) mode automatically — everything
-still works, it just isn't shared. To exercise real Firestore locally without
-a live project at all, run the Firestore emulator from the repo root:
+The app now requires signing in (Apple or Google, via Firebase Auth) before
+anything else loads — a Firebase project (see below) is required to run it
+at all, there's no more local-only/no-Firebase mode. To develop against a
+real backend without a live cloud project, run the Firestore **and** Auth
+emulators from the repo root:
 
 ```bash
-npx firebase-tools emulators:start --project demo-loocodes --only firestore
+npx firebase-tools emulators:start --project demo-loocodes --only firestore,auth
 ```
 
-and add `VITE_FIRESTORE_EMULATOR_HOST=localhost:8080` to `web/.env.local`.
+and add both of these to `web/.env.local`:
+
+```
+VITE_FIRESTORE_EMULATOR_HOST=localhost:8080
+VITE_AUTH_EMULATOR_HOST=localhost:9099
+```
+
+The Auth emulator simulates Google/Apple sign-in locally (a fake account
+picker instead of a real OAuth consent screen) — good enough for exercising
+the whole app without needing live provider credentials.
 
 ## Build / preview
 
@@ -35,18 +45,18 @@ src/
 ├── App.tsx               Bottom tab bar (Share / Nearby / Profile), offline banner
 ├── types/                 Bathroom, BathroomType
 ├── lib/
-│   ├── firebase.ts          Firebase app + Firestore init (and emulator wiring)
+│   ├── firebase.ts          Firebase app + Firestore + Auth init (and emulator wiring)
+│   ├── auth.ts              signInWithGoogle/Apple, user profile upsert, deleteAccount
 │   ├── firestoreBathrooms.ts Firestore reads/writes + client-side validation
-│   ├── anonymousUser.ts     Persistent per-browser id (used for "My Codes")
-│   ├── flaggedTracker.ts    Which listings this browser has already flagged
 │   ├── trust.ts             computeTrustScore — confirmations/flags/decay
 │   └── time.ts              formatRelativeTime ("Confirmed 2d ago", etc.)
-├── store/                 BathroomStoreContext — subscribes to Firestore in
-│                          real time, falls back to localStorage if it's
-│                          unreachable or unconfigured
+├── store/
+│   ├── AuthContext.tsx      Wraps Firebase Auth state + sign-in/out/delete
+│   └── BathroomStoreContext.tsx  Subscribes to Firestore in real time, falls
+│                            back to localStorage if it's unreachable
 ├── hooks/useLocation.ts    Browser Geolocation + distance formatting
-├── views/                  BathroomListView, BathroomDetailSheet, ShareView,
-│                           ProfileView, SettingsViews
+├── views/                  LoginView, BathroomListView, BathroomDetailSheet,
+│                           ShareView, ProfileView, SettingsViews
 └── components/             FilterChip, badges, StarRating (display), StarPicker
                             (submission input), FormField, Switch,
                             BathroomsMap (Nearby tab's Map view, Leaflet),
@@ -75,10 +85,10 @@ src/
   underneath the original listing — it never silently overwrites the
   submitter's original fields, since there's no ownership/accounts system to
   arbitrate conflicting edits safely.
-- **"Trusted Contributor"** badge on Profile is a rough, non-durable
-  approximation (net confirmations across your own listings) — since
-  identity here is just a resettable per-browser id (see Delete Account),
-  it can't be a real persistent reputation system.
+- **"Trusted Contributor"** badge on Profile is a rough, informal
+  approximation (net confirmations across your own listings), not a
+  verified reputation system — it isn't derived from anything the account
+  itself controls, but it's still just a cosmetic badge.
 
 ## Public sharing (Firebase / Firestore)
 
@@ -88,17 +98,20 @@ there's no custom backend in between. `BathroomStoreContext` subscribes to
 that collection in real time (`onSnapshot`), so every visitor sees new codes,
 votes, flags, and suggestions the moment they happen, without refreshing.
 
-Since there's no accounts system, **Firestore Security Rules
-(`firestore.rules`, repo root) are the only real enforcement layer** — they
-allow public read, validated create, and only three narrow update shapes
-(vote, flag, suggest), rejecting everything else (including direct edits to
-a listing's name/code/address, and all deletes). The client-side validation
-in `firestoreBathrooms.ts` is a first pass for well-behaved clients, not a
-security boundary — treat the rules as the source of truth.
+**Firestore Security Rules (`firestore.rules`, repo root) are the real
+enforcement layer**, not the client-side validation in
+`firestoreBathrooms.ts` (which is just a first pass for well-behaved
+clients) — the rules require a signed-in account for every read and write,
+pin a listing's `submittedBy` to the caller's own uid, and allow only four
+narrow update shapes (vote, flag, clear-flag, suggest), rejecting everything
+else (including direct edits to a listing's name/code/address, and all
+deletes).
 
-If no Firebase project is configured, the app automatically falls back to a
-local-only mode (an orange banner says so, and shares only persist to that
-browser's `localStorage`).
+If Firestore is unreachable *after* signing in (a flaky connection, not a
+missing Firebase config — signing in itself requires a configured project),
+the app falls back to a local-only mode for that session (an orange banner
+says so, and changes only persist to that browser's `localStorage` until
+connectivity returns).
 
 ### One-time setup
 
@@ -118,15 +131,21 @@ browser's `localStorage`).
      bundle) — Firestore Security Rules are what actually protects the data,
      not secrecy of these values.
 5. **Deploy the security rules** — this step is required; without it,
-   Firestore's default rules deny everything and the app falls back to
-   offline mode even with a valid config:
+   Firestore's default rules deny everything:
    ```bash
    npx firebase-tools deploy --project YOUR_PROJECT_ID --only firestore:rules,firestore:indexes
    ```
    (`npx firebase-tools login` first if you haven't authenticated the CLI.)
+6. **Enable sign-in providers** — Authentication → Sign-in method → enable
+   **Google** (one click; `firebase.json`'s `auth.providers.googleSignIn`
+   block lets `firebase deploy --only auth` configure this for you too) and
+   **Apple**. Apple needs its own Apple Developer setup first — see
+   [Authentication / Sign-in](../README.md#authentication--sign-in) in the
+   repo root README for the full Services ID / key / Firebase console steps.
+   Until Apple's enabled, Google sign-in alone is enough to use the app.
 
-Redeploy the app once the env vars are set — the offline banner should
-disappear and shared codes become visible to every visitor.
+Redeploy the app once the env vars are set and providers are enabled — the
+login screen should let you sign in and the app loads normally from there.
 
 ## Maps (Leaflet + OpenStreetMap)
 

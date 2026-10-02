@@ -3,6 +3,7 @@ import PhotosUI
 
 struct ProfileView: View {
     @Environment(BathroomStore.self) var store
+    @Environment(AuthService.self) var authService
 
     @State private var showPhotoOptions = false
     @State private var showPhotoPicker  = false
@@ -11,9 +12,18 @@ struct ProfileView: View {
     @State private var avatarImage: Image?  = nil
     @State private var avatarEmoji: String? = nil
 
-    @State private var showNotifPrefs = false
-    @State private var showPrivacy    = false
-    @State private var showAbout      = false
+    @State private var showNotifPrefs   = false
+    @State private var showPrivacy      = false
+    @State private var showAbout        = false
+    @State private var showLogoutAlert  = false
+
+    private var displayName: String {
+        let name = authService.user?.displayName
+        let email = authService.user?.email
+        if let name, !name.isEmpty { return name }
+        if let email, !email.isEmpty { return email }
+        return "LooCodes User"
+    }
 
     private var myCodes:       [Bathroom] { store.myCodes() }
     private var totalUpvotes:  Int        { myCodes.reduce(0) { $0 + $1.upvoteCount } }
@@ -37,7 +47,7 @@ struct ProfileView: View {
                     }
                     .padding(.top, 20)
 
-                    Text("@loocodes_user")
+                    Text(displayName)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
 
@@ -85,6 +95,8 @@ struct ProfileView: View {
                         SettingsRow(icon: "lock.fill",      label: "Privacy settings")         { showPrivacy    = true }
                         Divider().background(Color(hex: "3a3a4a")).padding(.leading, 54)
                         SettingsRow(icon: "info.circle.fill", label: "About LooCodes")         { showAbout      = true }
+                        Divider().background(Color(hex: "3a3a4a")).padding(.leading, 54)
+                        SettingsRow(icon: "rectangle.portrait.and.arrow.right", label: "Logout") { showLogoutAlert = true }
                     }
                     .background(Color(hex: "252530"))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -102,6 +114,12 @@ struct ProfileView: View {
             .navigationDestination(isPresented: $showNotifPrefs) { NotificationPrefsView() }
             .navigationDestination(isPresented: $showPrivacy)    { PrivacySettingsView() }
             .navigationDestination(isPresented: $showAbout)      { AboutView() }
+            .alert("Logout?", isPresented: $showLogoutAlert) {
+                Button("Logout", role: .destructive) { authService.signOut() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("You'll be signed out of LooCodes on this device. Your codes and account stay exactly as they are — sign back in anytime to pick up where you left off.")
+            }
         }
         .confirmationDialog("Change Photo", isPresented: $showPhotoOptions, titleVisibility: .visible) {
             Button("Photo Library")  { showPhotoPicker = true }

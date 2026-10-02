@@ -7,8 +7,19 @@
     "firestore": {
       "port": 8080
     },
+    "auth": {
+      "port": 9099
+    },
     "ui": {
       "enabled": true
+    }
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "LooCodes",
+        "supportEmail": "timothycocores@gmail.com"
+      }
     }
   }
 }

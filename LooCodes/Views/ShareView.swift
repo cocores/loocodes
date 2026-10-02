@@ -243,7 +243,7 @@ struct ShareView: View {
             code: code, type: type,
             isADAAccessible: isADA, isFree: isFree, feeAmount: feeAmount,
             note: note, latitude: coord.latitude, longitude: coord.longitude,
-            submittedBy: LocalInteractionTracker.userId(),
+            submittedBy: store.uid,
             rating: 3
         )
 

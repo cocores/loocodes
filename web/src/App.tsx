@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { AuthProvider, useAuth } from "./store/AuthContext";
 import { BathroomStoreProvider, useBathroomStore } from "./store/BathroomStoreContext";
 import type { Coordinate } from "./hooks/useLocation";
+import { LoginView } from "./views/LoginView";
 import { ShareView } from "./views/ShareView";
 import { BathroomListView } from "./views/BathroomListView";
 import { ProfileView } from "./views/ProfileView";
@@ -15,45 +17,71 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+// The app requires a signed-in account now — there's no more anonymous/
+// no-login mode. A signed-out visitor only ever sees LoginView; everything
+// else (including BathroomStoreProvider, which needs a real uid) only
+// mounts once a user exists.
+function AuthGate() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="screen app__loading" />;
+  }
+  if (!user) {
+    return <LoginView />;
+  }
+  return (
+    <BathroomStoreProvider>
+      <MainApp />
+    </BathroomStoreProvider>
+  );
+}
+
+function MainApp() {
   const [tab, setTab] = useState<Tab>("nearby");
   const [prefillLocation, setPrefillLocation] = useState<Coordinate | null>(null);
 
   return (
-    <BathroomStoreProvider>
-      <div className="app">
-        <OfflineBanner />
-        <main className="app__content">
-          <div style={{ display: tab === "share" ? "block" : "none" }}>
-            <ShareView onViewList={() => setTab("nearby")} prefillLocation={prefillLocation} />
-          </div>
-          <div style={{ display: tab === "nearby" ? "block" : "none" }}>
-            <BathroomListView
-              onAddAtLocation={(coordinate) => {
-                setPrefillLocation(coordinate);
-                setTab("share");
-              }}
-            />
-          </div>
-          <div style={{ display: tab === "profile" ? "block" : "none" }}>
-            <ProfileView />
-          </div>
-        </main>
+    <div className="app">
+      <OfflineBanner />
+      <main className="app__content">
+        <div style={{ display: tab === "share" ? "block" : "none" }}>
+          <ShareView onViewList={() => setTab("nearby")} prefillLocation={prefillLocation} />
+        </div>
+        <div style={{ display: tab === "nearby" ? "block" : "none" }}>
+          <BathroomListView
+            onAddAtLocation={(coordinate) => {
+              setPrefillLocation(coordinate);
+              setTab("share");
+            }}
+          />
+        </div>
+        <div style={{ display: tab === "profile" ? "block" : "none" }}>
+          <ProfileView />
+        </div>
+      </main>
 
-        <nav className="app__tabbar">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`app__tab ${tab === t.id ? "app__tab--active" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              <span className="app__tab-icon">{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-    </BathroomStoreProvider>
+      <nav className="app__tabbar">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`app__tab ${tab === t.id ? "app__tab--active" : ""}`}
+            onClick={() => setTab(t.id)}
+          >
+            <span className="app__tab-icon">{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
   );
 }
 

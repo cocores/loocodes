@@ -34,9 +34,10 @@ export function AdminFlaggedView({ onBack }: { onBack: () => void }) {
       <div className="sub-screen__body">
         <p className="admin-flagged__intro">
           Listings flagged as stale (a wrong code, or no longer a bathroom at all). There's no
-          real admin login in this app yet — anyone can open this screen and resolve a report,
-          same as everything else here being per-device rather than accounts. Resolving clears
-          the flag count back to zero; it doesn't otherwise change the listing.
+          real admin role in this app yet — any signed-in account can open this screen and
+          resolve a report, it's an honor-system gate, not a privilege check. Resolving clears
+          the flag count back to zero (and lets the same accounts flag it again later); it
+          doesn't otherwise change the listing.
         </p>
 
         {flagged.length === 0 ? (

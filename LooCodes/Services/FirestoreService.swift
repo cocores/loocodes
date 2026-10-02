@@ -43,6 +43,10 @@ enum FirestoreService {
         any as? Bool ?? false
     }
 
+    private static func stringArray(_ any: Any?) -> [String] {
+        any as? [String] ?? []
+    }
+
     // MARK: - Mapping
 
     static func bathroom(from data: [String: Any], id: String) -> Bathroom? {
@@ -79,7 +83,9 @@ enum FirestoreService {
             hasVotedUp: boolValue(data["hasVotedUp"]),
             flagCount: intValue(data["flagCount"]),
             lastConfirmedAt: int64Value(data["lastConfirmedAt"]),
-            suggestions: suggestions
+            suggestions: suggestions,
+            voters: stringArray(data["voters"]),
+            flaggers: stringArray(data["flaggers"])
         )
     }
 
@@ -105,6 +111,8 @@ enum FirestoreService {
             "flagCount": bathroom.flagCount,
             "lastConfirmedAt": bathroom.lastConfirmedAt,
             "suggestions": [],
+            "voters": [],
+            "flaggers": [],
         ]
     }
 
@@ -156,28 +164,35 @@ enum FirestoreService {
         return bathroom
     }
 
-    static func voteUp(_ id: String) async throws {
+    static func voteUp(_ id: String, uid: String) async throws {
         try await Firestore.firestore().collection(collection).document(id).updateData([
             "upvoteCount": FieldValue.increment(Int64(1)),
             "hasVotedUp": true,
             "lastConfirmedAt": Int64(Date().timeIntervalSince1970 * 1000),
+            // Repeat votes from the same uid are a no-op for this list
+            // (arrayUnion dedupes) — it only drives "✓ Works!" styling
+            // across this account's devices, never blocks the increment.
+            "voters": FieldValue.arrayUnion([uid]),
         ])
     }
 
-    static func flag(_ id: String) async throws {
+    static func flag(_ id: String, uid: String) async throws {
         // A flag resets the shared "confirmed working" state too — matched
-        // by clearing this device's own local vote history in BathroomStore.
+        // by clearing this account's own local vote state in BathroomStore.
         try await Firestore.firestore().collection(collection).document(id).updateData([
             "flagCount": FieldValue.increment(Int64(1)),
             "hasVotedUp": false,
+            "flaggers": FieldValue.arrayUnion([uid]),
         ])
     }
 
     /// Admin action — resets a listing's flag count once reviewed. Narrowly
-    /// scoped by firestore.rules to a reset from >0 back to exactly 0.
+    /// scoped by firestore.rules to a reset from >0 back to exactly 0 (plus
+    /// clearing flaggers so the same accounts can flag again if it recurs).
     static func clearFlag(_ id: String) async throws {
         try await Firestore.firestore().collection(collection).document(id).updateData([
             "flagCount": 0,
+            "flaggers": [],
         ])
     }
 
@@ -193,5 +208,25 @@ enum FirestoreService {
         try await Firestore.firestore().collection(collection).document(id).updateData([
             "suggestions": FieldValue.arrayUnion([suggestion]),
         ])
+    }
+
+    // MARK: - User profiles
+
+    static func upsertUserProfile(uid: String, displayName: String, email: String?, provider: String) async throws {
+        let ref = Firestore.firestore().collection("users").document(uid)
+        let existing = try await ref.getDocument()
+        // createdAt is immutable by rule — only set it (and the rest of the
+        // profile) on first sign-in, never overwrite on every login.
+        guard !existing.exists else { return }
+        try await ref.setData([
+            "displayName": String(displayName.prefix(100)),
+            "email": email ?? NSNull(),
+            "provider": provider,
+            "createdAt": Int64(Date().timeIntervalSince1970 * 1000),
+        ])
+    }
+
+    static func deleteUserProfile(uid: String) async throws {
+        try await Firestore.firestore().collection("users").document(uid).delete()
     }
 }

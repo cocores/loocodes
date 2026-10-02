@@ -127,7 +127,7 @@ struct PermissionSheet: View {
 
 // MARK: - Privacy Settings
 struct PrivacySettingsView: View {
-    @Environment(BathroomStore.self) var store
+    @Environment(AuthService.self) var authService
     @Environment(\.dismiss) var dismiss
 
     @State private var preciseLocation    = true
@@ -150,12 +150,18 @@ struct PrivacySettingsView: View {
 
             Section {
                 Button(role: .destructive) { showDeleteAlert = true } label: {
-                    Label("Delete Account & Data", systemImage: "trash.fill")
+                    Label("Delete Account", systemImage: "trash.fill")
                 }
             } footer: {
-                Text("LooCodes never sells your data. Location is used only to find nearby bathrooms.")
-                    .font(.caption)
-                    .foregroundStyle(Color(hex: "8888aa"))
+                if let errorMessage = authService.errorMessage {
+                    Text("⚠ \(errorMessage)")
+                        .font(.caption)
+                        .foregroundStyle(Color(hex: "ff4d4f"))
+                } else {
+                    Text("LooCodes never sells your data. Location is used only to find nearby bathrooms.")
+                        .font(.caption)
+                        .foregroundStyle(Color(hex: "8888aa"))
+                }
             }
         }
         .scrollContentBackground(.hidden)
@@ -164,12 +170,17 @@ struct PrivacySettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .alert("Delete Account?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
-                store.resetAccount()
-                dismiss()
+                Task {
+                    // On success, AuthService.user clears and AuthGate (in
+                    // LooCodesApp.swift) swaps straight to LoginView — no
+                    // dismiss() needed. On failure, errorMessage above
+                    // explains why (most commonly: sign in again first).
+                    await authService.deleteAccount()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This resets your account on this device. Codes you've already shared stay public for others to use — they just won't show under \"My Codes\" anymore.")
+            Text("This permanently deletes your LooCodes account and sign-in. Codes you've already shared stay public for others to use — they just won't show under \"My Codes\" for you anymore, since you won't be signed in to see them.")
         }
     }
 }

@@ -79,6 +79,8 @@ function buildBathroomDoc(input: NewBathroom, id: string): Bathroom {
     flagCount: 0,
     lastConfirmedAt: Date.now(),
     suggestions: [],
+    voters: [],
+    flaggers: [],
   };
 }
 
@@ -102,9 +104,19 @@ async function ensureSeeded(): Promise<void> {
   const batch = writeBatch(db);
   let hasWrites = false;
 
+  // The curated seed data in store/seed.ts predates `voters`/`flaggers` (and
+  // is typed Bathroom[] with those fields optional for exactly this reason)
+  // — firestore.rules requires both present as empty lists on create, so
+  // fill them in here rather than editing several thousand lines of seed data.
+  const withVoteFields = (b: Bathroom): Bathroom => ({
+    ...b,
+    voters: b.voters ?? [],
+    flaggers: b.flaggers ?? [],
+  });
+
   if (snapshot.empty) {
     for (const bathroom of SEED_BATHROOMS) {
-      batch.set(doc(db, COLLECTION, bathroom.id), bathroom);
+      batch.set(doc(db, COLLECTION, bathroom.id), withVoteFields(bathroom));
       hasWrites = true;
     }
   }
@@ -126,7 +138,7 @@ async function ensureSeeded(): Promise<void> {
     ...ST_LOUIS_TOILETS,
   ]) {
     if (!existingIds.has(toilet.id)) {
-      batch.set(doc(db, COLLECTION, toilet.id), toilet);
+      batch.set(doc(db, COLLECTION, toilet.id), withVoteFields(toilet));
       hasWrites = true;
     }
   }
@@ -172,16 +184,20 @@ export async function createBathroom(input: NewBathroom): Promise<Bathroom> {
   return bathroom;
 }
 
-export async function voteUpBathroom(id: string): Promise<void> {
+export async function voteUpBathroom(id: string, uid: string): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, COLLECTION, id), {
     upvoteCount: increment(1),
     hasVotedUp: true,
     lastConfirmedAt: Date.now(),
+    // Repeat votes from the same uid are a no-op for this list (arrayUnion
+    // dedupes) — it's only ever used to show "✓ Works!" across this
+    // account's devices, never to block the increment above.
+    voters: arrayUnion(uid),
   });
 }
 
-export async function flagBathroom(id: string): Promise<void> {
+export async function flagBathroom(id: string, uid: string): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, COLLECTION, id), {
     flagCount: increment(1),
@@ -190,32 +206,31 @@ export async function flagBathroom(id: string): Promise<void> {
     // matched by resetting this device's own local vote history alongside
     // the flag() call in BathroomStoreContext.
     hasVotedUp: false,
+    flaggers: arrayUnion(uid),
   });
 }
 
 /** Resets a listing's flag count once a reviewer has looked into the report
  * (see views/AdminFlaggedView.tsx). There's no real auth/admin role in this
  * app, so this is a soft, honor-system gate — the security rules only
- * guarantee it's narrowly a flagCount reset to zero, nothing else. */
+ * guarantee it's narrowly a flagCount reset to zero (and flaggers cleared
+ * alongside it, so the same accounts can flag again if the issue recurs). */
 export async function clearFlag(id: string): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, COLLECTION, id), {
     flagCount: 0,
+    flaggers: [],
   });
 }
 
-export async function suggestBathroomUpdate(
-  id: string,
-  text: string,
-  submittedBy: string,
-): Promise<void> {
+export async function suggestBathroomUpdate(id: string, text: string, uid: string): Promise<void> {
   const trimmed = sanitizeText(text, 500);
   if (!trimmed) throw new Error("Suggestion text is required");
 
   const suggestion: BathroomSuggestion = {
     id: crypto.randomUUID(),
     text: trimmed,
-    submittedBy: sanitizeText(submittedBy, 100) || "anonymous",
+    submittedBy: uid,
     createdAt: Date.now(),
   };
 

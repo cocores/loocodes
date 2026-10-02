@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useAuth } from "../store/AuthContext";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { bathroomType, type Bathroom } from "../types";
 import { CodeBadge } from "../components/Badges";
@@ -12,16 +13,16 @@ const EMOJIS = [
   "🚽", "🚻", "🗝", "🪠", "💧", "🏠", "📍", "⭐", "🎯", "🛡",
 ];
 
-// A lightweight stand-in for real contributor reputation: since there's no
-// login (just a per-browser id that Delete Account can reset anytime), this
-// can't be a durable trust system — it's a rough badge based on this
-// browser's current track record, not a persistent account-level score.
+// A lightweight stand-in for real contributor reputation — not derived from
+// anything the account controls (upvotes/flags on its own submissions), but
+// still just a rough badge, not a verified trust system.
 const TRUSTED_CONTRIBUTOR_THRESHOLD = 10;
 
 type Screen = "profile" | "notifications" | "privacy" | "about" | "flagged";
 
 export function ProfileView() {
-  const { myCodes, bathrooms, resetAccount } = useBathroomStore();
+  const { myCodes, bathrooms } = useBathroomStore();
+  const { user, signOut } = useAuth();
   const [screen, setScreen] = useState<Screen>("profile");
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -31,8 +32,8 @@ export function ProfileView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const confirmLogout = () => {
-    resetAccount();
     setShowLogoutConfirm(false);
+    void signOut();
   };
 
   const totalUpvotes = myCodes.reduce((sum, b) => sum + b.upvoteCount, 0);
@@ -85,7 +86,7 @@ export function ProfileView() {
           <span className="profile-view__avatar-edit">✎</span>
         </button>
 
-        <div className="profile-view__handle">@loocodes_user</div>
+        <div className="profile-view__handle">{user?.displayName || user?.email || "LooCodes User"}</div>
         {isTrustedContributor && (
           <div className="profile-view__trusted-badge">🌟 Trusted Contributor</div>
         )}
@@ -133,8 +134,8 @@ export function ProfileView() {
           <div className="alert" onClick={(e) => e.stopPropagation()}>
             <div className="alert__title">Logout?</div>
             <div className="alert__message">
-              You'll get a fresh identity on this device. Codes you've already shared stay public
-              for others to use — they just won't show under "My Codes" anymore.
+              You'll be signed out of LooCodes on this device. Your codes and account stay exactly
+              as they are — sign back in anytime to pick up where you left off.
             </div>
             <div className="alert__actions">
               <button type="button" onClick={() => setShowLogoutConfirm(false)}>

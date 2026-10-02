@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../store/AuthContext";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation, type Coordinate } from "../hooks/useLocation";
 import { BATHROOM_TYPES, type NewBathroom, type BathroomTypeId } from "../types";
@@ -9,7 +10,6 @@ import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { CodeBadge } from "../components/Badges";
 import { Switch } from "../components/Switch";
 import { StarPicker } from "../components/StarPicker";
-import { getUserId } from "../lib/anonymousUser";
 import "./ShareView.css";
 
 type InputMode = "gps" | "pin" | "address";
@@ -32,6 +32,7 @@ export function ShareView({
   prefillLocation?: Coordinate | null;
 }) {
   const { add } = useBathroomStore();
+  const { user } = useAuth();
   const { location } = useLocation();
 
   const [name, setName] = useState("");
@@ -83,7 +84,7 @@ export function ShareView({
       note,
       latitude: coord.latitude,
       longitude: coord.longitude,
-      submittedBy: getUserId(),
+      submittedBy: user?.uid ?? "",
       rating: cleanliness,
     };
 

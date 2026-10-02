@@ -47,6 +47,10 @@
   border-bottom: 0.5px solid var(--border);
 }
 
+.app__loading {
+  height: 100%;
+}
+
 .app__offline-banner code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }

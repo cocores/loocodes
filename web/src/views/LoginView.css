@@ -1,0 +1,79 @@
+.login-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+}
+
+.login-view__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 340px;
+  width: 100%;
+}
+
+.login-view__logo {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+
+.login-view__title {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.login-view__subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 32px;
+  line-height: 1.5;
+}
+
+.login-view__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.login-view__apple-btn,
+.login-view__google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-view__apple-btn {
+  background: var(--white);
+  color: #000;
+}
+
+.login-view__google-btn {
+  background: var(--card);
+  color: var(--white);
+  border: 0.5px solid var(--border);
+}
+
+.login-view__error {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--flag);
+}
+
+.login-view__fine-print {
+  margin-top: 28px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}

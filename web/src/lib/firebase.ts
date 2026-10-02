@@ -1,4 +1,5 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
+import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
 
 // Set for local dev against `firebase emulators:start` — lets the app run
@@ -18,22 +19,39 @@ export function isFirebaseConfigured(): boolean {
   return Boolean(config.apiKey && config.projectId);
 }
 
+const AUTH_EMULATOR_HOST = import.meta.env.VITE_AUTH_EMULATOR_HOST;
+
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
+let auth: Auth | null = null;
 
-export function getDb(): Firestore {
+function getApp(): FirebaseApp {
   if (!isFirebaseConfigured()) {
     throw new Error(
       "No Firebase project configured. Set VITE_FIREBASE_* env vars (see web/README.md).",
     );
   }
   if (!app) app = initializeApp(config);
+  return app;
+}
+
+export function getDb(): Firestore {
   if (!db) {
-    db = getFirestore(app);
+    db = getFirestore(getApp());
     if (EMULATOR_HOST) {
       const [host, port] = EMULATOR_HOST.split(":");
       connectFirestoreEmulator(db, host, Number(port));
     }
   }
   return db;
+}
+
+export function getFirebaseAuth(): Auth {
+  if (!auth) {
+    auth = getAuth(getApp());
+    if (AUTH_EMULATOR_HOST) {
+      connectAuthEmulator(auth, `http://${AUTH_EMULATOR_HOST}`, { disableWarnings: true });
+    }
+  }
+  return auth;
 }

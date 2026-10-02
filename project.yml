@@ -9,6 +9,9 @@ packages:
   firebase-ios-sdk:
     url: https://github.com/firebase/firebase-ios-sdk
     from: 11.0.0
+  GoogleSignIn-iOS:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 7.1.0
 
 targets:
   LooCodes:
@@ -33,6 +36,14 @@ targets:
         NSLocationWhenInUseUsageDescription: >-
           LooCodes uses your location to show nearby bathrooms and sort
           listings by distance.
+        # The reversed iOS client ID from GoogleService-Info.plist's
+        # REVERSED_CLIENT_ID — this is what lets Google's sign-in flow hand
+        # control back to this app after the user authenticates in the
+        # system browser. GIDClientID is the (non-reversed) CLIENT_ID.
+        GIDClientID: 886081277831-4t8mgua0mvj908jn1cj0mjjoththi09i.apps.googleusercontent.com
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.886081277831-4t8mgua0mvj908jn1cj0mjjoththi09i
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cocores.loocodes
@@ -43,8 +54,15 @@ targets:
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_ENTITLEMENTS: LooCodes/LooCodes.entitlements
     dependencies:
       - package: firebase-ios-sdk
         product: FirebaseCore
       - package: firebase-ios-sdk
         product: FirebaseFirestore
+      - package: firebase-ios-sdk
+        product: FirebaseAuth
+      - package: GoogleSignIn-iOS
+        product: GoogleSignIn
+      - package: GoogleSignIn-iOS
+        product: GoogleSignInSwift

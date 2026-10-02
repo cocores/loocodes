@@ -63,6 +63,17 @@ export interface Bathroom {
   /** Community-proposed corrections/updates — additive, never overwrite the
    * original submission (see computeTrustScore / lib/trust.ts). */
   suggestions: BathroomSuggestion[];
+  /** uids who have tapped "It Works" at least once — a per-account "already
+   * confirmed" UI signal. Repeat taps are allowed by design (see voteUp in
+   * BathroomStoreContext), so this list is never used to block a vote.
+   * Optional because every curated listing in store/seed.ts predates this
+   * field (same reasoning as `suggestions` below) — always default to []
+   * when reading, never assume it's present. */
+  voters?: string[];
+  /** uids who have flagged this listing — unlike voters, this DOES gate
+   * flagCount increments: one flag per account, enforced by firestore.rules.
+   * Optional for the same reason as `voters`. */
+  flaggers?: string[];
 }
 
 // Once a listing collects this many flags, it's shown as "Reported stale"

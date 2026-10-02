@@ -23,9 +23,10 @@ LooCodes/
 ├── Services/
 │   ├── BathroomStore.swift          @Observable store, backed by Firestore
 │   ├── FirestoreService.swift       Firestore reads/writes (manual dict mapping)
-│   ├── LocalInteractionTracker.swift Per-device vote/flag/anon-id (UserDefaults)
+│   ├── AuthService.swift            Firebase Auth: Sign in with Apple / Google
 │   └── LocationService.swift
 ├── Views/
+│   ├── LoginView.swift
 │   ├── BathroomListView.swift
 │   ├── BathroomDetailSheet.swift
 │   ├── ShareView.swift
@@ -50,11 +51,15 @@ open LooCodes.xcodeproj
 
 In Xcode, select the `LooCodes` target → **Signing & Capabilities** and
 set your own Apple Developer **Team** (the project uses automatic signing
-but no team is pre-configured). Firebase/Firestore wiring,
+but no team is pre-configured; it does already request the "Sign in with
+Apple" capability via `LooCodes/LooCodes.entitlements`, which needs that
+Team set to provision correctly). Firebase/Firestore wiring,
 `Info.plist` permissions, the privacy manifest, and a placeholder app icon
 are already in place — the app talks to the same `loo-codes-bc914`
-Firestore backend as the web app, with the same per-device vote/flag
-tracking (UserDefaults instead of localStorage).
+Firestore backend as the web app, and requires signing in (Apple or
+Google, via Firebase Auth) the same way the web app does — see
+[Authentication](#authentication--sign-in) below for the one-time console
+setup both still need.
 
 ### Before submitting to the App Store
 
@@ -62,6 +67,10 @@ Code-wise the app is wired up, but these are manual, non-code steps still
 needed before submission:
 
 - **Apple Developer Program** enrollment + signing team, set in Xcode as above.
+- **Enable "Sign in with Apple" for this App ID** in the Apple Developer
+  portal (Certificates, Identifiers & Profiles → Identifiers →
+  `com.cocores.loocodes` → check the Sign in with Apple capability) —
+  automatic signing won't turn this on by itself the first time.
 - **App icon** — `Assets.xcassets/AppIcon.appiconset/AppIcon.png` is a
   generated placeholder; swap in real designed artwork (1024×1024, no
   alpha, no pre-rounded corners).
@@ -70,8 +79,9 @@ needed before submission:
   real Privacy Policy/Terms/support URL (Apple requires a working privacy
   policy link) and the app's real App Store listing once it exists.
 - **App Store Connect listing** — screenshots, description, and the "App
-  Privacy" nutrition label (this app collects precise location and
-  user-submitted content).
+  Privacy" nutrition label (this app collects precise location,
+  user-submitted content, and now an account identifier/email via Apple
+  or Google sign-in).
 - **Feature parity gap** — `ShareView.swift` has no star/cleanliness rating
   picker like the web app's; new listings are published with a hardcoded
   rating of 3. Add one if full parity with web is wanted.
@@ -88,11 +98,13 @@ npm run dev
 
 ## Backend
 
-There's no custom server — the web app talks to **Firestore directly from
-the browser** (Firebase client SDK), with [`firestore.rules`](firestore.rules)
-as the actual security boundary (public read, validated create, only
-vote/flag/suggest updates allowed, no deletes, no direct edits to a listing's
-core fields). See
+There's no custom server — both apps talk to **Firestore directly from the
+client** (Firebase client SDK), with [`firestore.rules`](firestore.rules)
+as the actual security boundary: signing in is required for every read and
+write, a listing's `submittedBy` must match the caller's own uid, voting is
+an always-repeatable reconfirmation, and flagging is capped at once per
+account (`voters`/`flaggers` arrays on each bathroom document, not the
+old per-device-only enforcement). See
 [`web/README.md`](web/README.md#public-sharing-firebase--firestore) for the
 one-time Firebase project setup and rules deployment.
 
@@ -100,5 +112,53 @@ one-time Firebase project setup and rules deployment.
 firestore.rules            Security rules — the real enforcement layer
 firestore.indexes.json     (empty — no composite indexes needed yet)
 firebase.json              Points the Firebase CLI at the rules/indexes,
-                            plus emulator config for local dev/testing
+                            auth provider config, plus emulator config for
+                            local dev/testing
 ```
+
+## Authentication / Sign-in
+
+Both apps require signing in with **Sign in with Apple** or **Sign in with
+Google** (via Firebase Auth) before any other screen is usable — there's no
+anonymous mode anymore. Each account gets a `users/{uid}` Firestore profile
+(`displayName`, `email`, `provider`, `createdAt`), and a bathroom listing's
+`submittedBy` is the creator's real uid instead of a per-device random id.
+
+**Already done** (both via the Firebase CLI/MCP tooling and in code):
+- Google Sign-In is enabled as a provider on the `loo-codes-bc914` Firebase
+  project (`firebase.json`'s `auth.providers.googleSignIn` block).
+- Web: `web/src/lib/auth.ts` + `web/src/store/AuthContext.tsx` wrap
+  `signInWithPopup` for both providers.
+- iOS: `LooCodes/Services/AuthService.swift` wraps the native
+  `ASAuthorizationController` flow for Apple and the GoogleSignIn SDK for
+  Google (Google's own sign-in endpoint blocks the generic embedded-webview
+  OAuth flow Firebase offers for other providers, so Apple and Google each
+  need their platform-appropriate SDK rather than one generic code path).
+
+**Still manual** — Apple sign-in needs a one-time Apple Developer + Firebase
+console setup that can't be done through the CLI/MCP tooling used so far:
+
+1. In the [Apple Developer portal](https://developer.apple.com/account),
+   under **Certificates, Identifiers & Profiles → Identifiers**, create a
+   **Services ID** (distinct from the app's own Bundle ID) for web/Firebase
+   use, and enable **Sign in with Apple** on it. Configure its "Return URLs"
+   to include `https://loo-codes-bc914.firebaseapp.com/__/auth/handler`
+   (Firebase's standard OAuth redirect handler) plus your production web
+   domain if you add a custom one later.
+2. Also enable the **Sign in with Apple** capability on the iOS app's own
+   identifier, `com.cocores.loocodes` (separate from the Services ID above —
+   native iOS sign-in uses the app's own Bundle ID, not the Services ID).
+3. Generate a **Sign in with Apple private key** (Keys → create a new key
+   with the Sign in with Apple capability) and note its Key ID, plus your
+   Apple Team ID.
+4. In the [Firebase console](https://console.firebase.google.com/project/loo-codes-bc914/authentication/providers)
+   → Authentication → Sign-in method → **Apple**, enable it and fill in the
+   Services ID, Apple Team ID, Key ID, and the private key file from step 3.
+5. For the web app specifically: if you deploy it to a custom domain,
+   add that domain under Authentication → Settings → **Authorized domains**
+   (the default `loo-codes-bc914.firebaseapp.com` and `localhost` are
+   already authorized).
+
+Until step 4 is done, the Apple button in both apps will fail at sign-in
+time with a Firebase "operation-not-allowed" error — Google sign-in already
+works end-to-end without any further setup.

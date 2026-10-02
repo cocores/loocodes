@@ -1,32 +1,95 @@
 rules_version = '2';
 
-// Backs the LooCodes web app's direct-from-browser Firestore access
-// (web/src/lib/firestoreBathrooms.ts). Since there's no accounts/auth system,
-// these rules are the ONLY real enforcement layer — the client-side
-// validation in firestoreBathrooms.ts is a first pass for good citizens, not
-// a security boundary.
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: bathrooms
+// Document ID: auto-generated (stored redundantly as `id` on the doc itself)
+// Fields:
+//   - id: string, required, immutable — must equal the document ID
+//   - name: string, required, 1-200 chars, immutable after create
+//   - address: string, required, <=300 chars, immutable after create
+//   - code: string, required, <=50 chars, immutable after create
+//   - type: string, required, one of the allow-listed bathroom types, immutable
+//   - isADAAccessible: bool, required, immutable after create
+//   - isFree: bool, required, immutable after create
+//   - feeAmount: string, required, <=30 chars, immutable after create
+//   - note: string, required, <=500 chars, immutable after create
+//   - latitude: number, required, immutable after create
+//   - longitude: number, required, immutable after create
+//   - submittedBy: string, required, MUST equal the creator's auth uid,
+//       immutable after create (ownership can never be reassigned)
+//   - isVerified: bool, required (cosmetic badge only, not trust-sensitive)
+//   - isZohranToilet: bool, required (cosmetic badge only, not trust-sensitive)
+//   - upvoteCount: number, required, 0-100000, only moves via isVoteUpdate()
+//   - rating: number, required, 1-5, immutable after create
+//   - hasVotedUp: bool, required — a shared "last confirmation" flag, not
+//       per-user state (see `voters` below for the per-user signal)
+//   - flagCount: number, required, only moves via isFlagUpdate()/isFlagClearUpdate()
+//   - lastConfirmedAt: number (epoch ms), required, only moves via isVoteUpdate()
+//   - suggestions: list of maps {id, text, submittedBy, createdAt}, required,
+//       starts empty, only grows one element at a time via isSuggestionUpdate()
+//   - voters: list<string> of uids who have tapped "It Works" at least once —
+//       purely a per-account "already confirmed" UI signal; tapping again is
+//       allowed by design (it's a repeatable reconfirmation, not a one-time
+//       vote), so this list does NOT gate upvoteCount increments
+//   - flaggers: list<string> of uids who have flagged this listing — DOES
+//       gate flagCount increments; each uid may flag a given listing once
+//
+// Collection: users
+// Document ID: the user's Firebase Auth uid
+// Fields:
+//   - displayName: string, required, 1-100 chars
+//   - email: string or null, optional, <=320 chars when present
+//   - provider: string, required, one of 'apple.com' | 'google.com'
+//   - createdAt: number (epoch ms), required, immutable after create
+//
+// Contains PII (email), so unlike `bathrooms`, `users` documents are
+// readable only by their own owner — there is no public-profile feature in
+// this app (no screen ever reads another user's profile), so this is also
+// the least-privilege choice, not just the PII-safe one. If a future
+// feature wants to show "shared by <name>" publicly, denormalize a
+// `displayName` onto the bathroom/suggestion document itself rather than
+// loosening read access here.
+//
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     match /bathrooms/{bathroomId} {
 
-      // No account required to look up a code.
-      allow read: if true;
+      // The app now requires a signed-in account to use at all (Sign in
+      // with Apple / Google via Firebase Auth) — there is no more
+      // anonymous/no-account mode, so reads require auth too.
+      allow read: if isAuthenticated();
 
-      allow create: if isValidNewBathroom();
+      allow create: if isAuthenticated() && isValidNewBathroom();
 
       // Only four narrow transitions are allowed — direct edits to name,
       // code, address, etc. are rejected. That's deliberate: this app treats
       // corrections as proposals (the `suggestions` array), never silent
       // overwrites, and there's no ownership model to safely arbitrate who's
       // allowed to edit an existing listing's core fields.
-      allow update: if isVoteUpdate() || isFlagUpdate() || isFlagClearUpdate() || isSuggestionUpdate();
+      allow update: if isAuthenticated()
+        && (isVoteUpdate() || isFlagUpdate() || isFlagClearUpdate() || isSuggestionUpdate());
 
       allow delete: if false;
 
       function isValidNewBathroom() {
         let data = request.resource.data;
-        return data.id == bathroomId
+        return data.keys().hasOnly([
+            'id', 'name', 'address', 'code', 'type', 'isADAAccessible', 'isFree',
+            'feeAmount', 'note', 'latitude', 'longitude', 'submittedBy', 'isVerified',
+            'isZohranToilet', 'upvoteCount', 'rating', 'hasVotedUp', 'flagCount',
+            'lastConfirmedAt', 'suggestions', 'voters', 'flaggers',
+          ])
+          && data.id == bathroomId
           && data.name is string && data.name.size() > 0 && data.name.size() <= 200
           && data.address is string && data.address.size() <= 300
           && data.code is string && data.code.size() <= 50
@@ -37,7 +100,12 @@ service cloud.firestore {
           && data.note is string && data.note.size() <= 500
           && data.latitude is number
           && data.longitude is number
-          && data.submittedBy is string && data.submittedBy.size() > 0 && data.submittedBy.size() <= 100
+          // No longer an arbitrary client-chosen string — it must be the
+          // caller's own uid (so "My Codes" / ownership can't be spoofed),
+          // with one carve-out: the fixed system ids used to seed curated
+          // public-data listings (see isSystemSeedSubmitter below).
+          && data.submittedBy is string
+          && (data.submittedBy == request.auth.uid || isSystemSeedSubmitter(data.submittedBy))
           // isVerified/upvoteCount aren't pinned to false/0: this also has to
           // allow seeding demo listings with a fabricated history (see
           // web/src/store/seed.ts). Neither is a real security boundary —
@@ -50,50 +118,135 @@ service cloud.firestore {
           && data.hasVotedUp == false
           && data.flagCount == 0
           && data.lastConfirmedAt is number
-          && data.suggestions is list && data.suggestions.size() == 0;
+          && data.suggestions is list && data.suggestions.size() == 0
+          && data.voters is list && data.voters.size() == 0
+          && data.flaggers is list && data.flaggers.size() == 0;
       }
 
+      // Fixed ids used only by the one-time demo/curated-dataset seeding in
+      // web/src/store/seed.ts (ensureSeeded()) — never settable through any
+      // real user action in the app's UI, just allow-listed so a freshly
+      // created project can still seed its starter data once logins are
+      // required everywhere else. Carries no special privilege: a listing
+      // created this way is exactly as editable (vote/flag/suggest-only,
+      // same as any other) as one a real account submitted.
+      function isSystemSeedSubmitter(id) {
+        return id in [
+          'jen_nyc', 'parks_dept', 'demo_user', 'nyc_dot', 'nyc_parks_opendata',
+          'london_toilets', 'la_public_data', 'sf_public_works', 'paris_opendata',
+          'berlin_opendata', 'rome_pstop', 'denver_opendata', 'miami_dade_opendata',
+          'kck_opendata', 'kcmo_parksrec', 'dc_opendata', 'nps_mall',
+          'stl_forestpark', 'stl_parksrec',
+        ];
+      }
+
+      // "It Works" is a repeatable reconfirmation by design, not a one-time
+      // toggle — the same uid tapping it again still increments upvoteCount
+      // and refreshes lastConfirmedAt, so `voters` is only ever checked for
+      // membership (never for "must not already contain uid").
       function isVoteUpdate() {
         let before = resource.data;
         let after = request.resource.data;
-        return after.diff(before).affectedKeys().hasOnly(['upvoteCount', 'hasVotedUp', 'lastConfirmedAt'])
+        let uid = request.auth.uid;
+        return after.diff(before).affectedKeys().hasOnly(['upvoteCount', 'hasVotedUp', 'lastConfirmedAt', 'voters'])
           && after.upvoteCount == before.upvoteCount + 1
           && after.hasVotedUp == true
-          && after.lastConfirmedAt is number;
+          && after.lastConfirmedAt is number
+          && after.voters is list
+          && after.voters.size() <= 5000
+          && uid in after.voters;
       }
 
+      // Unlike voting, flagging is now capped at once per account — closes a
+      // gap the old device-only localStorage/UserDefaults tracking never
+      // actually enforced server-side (nothing stopped a direct API call
+      // from flagging the same listing repeatedly).
       function isFlagUpdate() {
         let before = resource.data;
         let after = request.resource.data;
+        let uid = request.auth.uid;
+        let beforeFlaggers = ('flaggers' in before) ? before.flaggers : [];
         // hasVotedUp may optionally be reset to false in the same update —
         // flagging something is a signal that a prior "It Works" confirmation
         // may no longer hold, but it's never allowed to flip the other way
         // (a flag update can't be used to sneak through a vote).
-        return after.diff(before).affectedKeys().hasOnly(['flagCount', 'hasVotedUp'])
+        return !(uid in beforeFlaggers)
+          && after.diff(before).affectedKeys().hasOnly(['flagCount', 'hasVotedUp', 'flaggers'])
           && after.flagCount == before.flagCount + 1
-          && (after.hasVotedUp == before.hasVotedUp || after.hasVotedUp == false);
+          && (after.hasVotedUp == before.hasVotedUp || after.hasVotedUp == false)
+          && after.flaggers is list
+          && after.flaggers.size() == beforeFlaggers.size() + 1
+          && after.flaggers.size() <= 5000
+          && uid in after.flaggers;
       }
 
       // Lets a reviewer (see web/src/views/AdminFlaggedView.tsx — there's no
       // real auth/admin role in this app, so this is only a soft gate, not a
       // security boundary) mark a flagged report as resolved. Deliberately
-      // narrow: only a reset from a positive count back to exactly zero, and
-      // nothing else about the document, which keeps it clearly distinct from
-      // isFlagUpdate() above rather than a general-purpose "set flagCount to
-      // anything" hole.
+      // narrow: only a reset from a positive count back to exactly zero (plus
+      // clearing the flaggers list so the same accounts can flag again if the
+      // issue recurs), and nothing else about the document — keeps it clearly
+      // distinct from isFlagUpdate() above rather than a general-purpose "set
+      // flagCount to anything" hole.
       function isFlagClearUpdate() {
         let before = resource.data;
         let after = request.resource.data;
-        return after.diff(before).affectedKeys().hasOnly(['flagCount'])
+        return after.diff(before).affectedKeys().hasOnly(['flagCount', 'flaggers'])
           && before.flagCount > 0
-          && after.flagCount == 0;
+          && after.flagCount == 0
+          && after.flaggers == [];
       }
 
       function isSuggestionUpdate() {
         let before = resource.data;
         let after = request.resource.data;
+        let uid = request.auth.uid;
+        let newSuggestion = after.suggestions[after.suggestions.size() - 1];
         return after.diff(before).affectedKeys().hasOnly(['suggestions'])
-          && after.suggestions.size() == before.suggestions.size() + 1;
+          && after.suggestions is list
+          && after.suggestions.size() == before.suggestions.size() + 1
+          && after.suggestions.size() <= 500
+          && newSuggestion.keys().hasOnly(['id', 'text', 'submittedBy', 'createdAt'])
+          && newSuggestion.id is string && newSuggestion.id.size() <= 100
+          && newSuggestion.text is string && newSuggestion.text.size() > 0 && newSuggestion.text.size() <= 500
+          // Must be the caller's own uid — a suggestion can't be submitted
+          // in someone else's name.
+          && newSuggestion.submittedBy == uid
+          && newSuggestion.createdAt is number;
+      }
+    }
+
+    match /users/{uid} {
+      // Owner-only in both directions: no screen in either app reads
+      // another user's profile today, and these documents hold an email
+      // address, so there's no reason to widen this to all authenticated
+      // users (see the PII note in the data model comment above).
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+
+      allow create: if isAuthenticated() && request.auth.uid == uid && isValidUserProfile();
+
+      allow update: if isAuthenticated() && request.auth.uid == uid && isValidUserProfile()
+        // createdAt is the one field that must survive every update —
+        // everything else about a profile can be edited (display name
+        // changes, email changes if the provider's changes), just not when
+        // the account was created.
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Unlike bathrooms (never deletable, by design), a user may delete
+      // their own profile as part of account deletion — see
+      // lib/auth.ts's deleteAccount(). This never cascades to anything the
+      // account submitted: bathrooms/suggestions keep their submittedBy
+      // uid as an orphaned reference, same as a browser "forgetting" its
+      // anonymous id used to before accounts existed.
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
+
+      function isValidUserProfile() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['displayName', 'email', 'provider', 'createdAt'])
+          && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
+          && (data.email == null || (data.email is string && data.email.size() <= 320))
+          && data.provider is string && data.provider in ['apple.com', 'google.com']
+          && data.createdAt is number;
       }
     }
   }

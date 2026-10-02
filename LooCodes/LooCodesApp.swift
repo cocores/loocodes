@@ -1,9 +1,10 @@
 import FirebaseCore
+import GoogleSignIn
 import SwiftUI
 
 @main
 struct LooCodesApp: App {
-    @State private var store = BathroomStore()
+    @State private var authService = AuthService()
     @State private var locationService = LocationService()
 
     init() {
@@ -12,15 +13,47 @@ struct LooCodesApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(store)
+            AuthGate()
+                .environment(authService)
                 .environment(locationService)
                 .preferredColorScheme(.dark)
                 .onAppear {
                     locationService.requestPermission()
                     locationService.startUpdating()
-                    store.start()
+                    authService.start()
+                }
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
                 }
         }
+    }
+}
+
+/// The app now requires a signed-in account — there's no more anonymous/
+/// no-login mode. A signed-out visitor only ever sees LoginView; everything
+/// else (including BathroomStore, which needs a real uid) only exists once
+/// a user does.
+private struct AuthGate: View {
+    @Environment(AuthService.self) var authService
+
+    var body: some View {
+        if authService.isLoading {
+            Color(hex: "1a1a1f").ignoresSafeArea()
+        } else if let user = authService.user {
+            AuthenticatedRootView(uid: user.uid)
+        } else {
+            LoginView()
+        }
+    }
+}
+
+private struct AuthenticatedRootView: View {
+    let uid: String
+    @State private var store = BathroomStore()
+
+    var body: some View {
+        ContentView()
+            .environment(store)
+            .onAppear { store.start(uid: uid) }
     }
 }
