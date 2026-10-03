@@ -2,12 +2,11 @@ import SwiftUI
 
 // MARK: - Notification Preferences
 struct NotificationPrefsView: View {
-    @State private var nearbyNew     = false
-    @State private var codeVerified  = false
-    @State private var codeFlagged   = false
-    @State private var quietHours    = false
-    @State private var weeklyDigest  = false
-    @State private var comments      = false
+    // Persisted on this account's Firestore profile (notificationPrefs)
+    // rather than local-only @State — these used to just reset to off every
+    // time this screen was reopened, which made them look broken even when
+    // "on."
+    @Environment(AuthService.self) var authService
     @State private var pendingPerm: PermType? = nil
 
     enum PermType: Identifiable {
@@ -35,24 +34,42 @@ struct NotificationPrefsView: View {
         List {
             Section("Nearby") {
                 Toggle("New codes near me", isOn: Binding(
-                    get: { nearbyNew },
-                    set: { if $0 { pendingPerm = .location } else { nearbyNew = false } }
+                    get: { authService.notificationPrefs.nearbyNew },
+                    set: { on in
+                        if on { pendingPerm = .location }
+                        else { authService.updateNotificationPrefs { $0.nearbyNew = false } }
+                    }
                 ))
-                Toggle("Weekly digest", isOn: $weeklyDigest)
+                Toggle("Weekly digest", isOn: Binding(
+                    get: { authService.notificationPrefs.weeklyDigest },
+                    set: { on in authService.updateNotificationPrefs { $0.weeklyDigest = on } }
+                ))
             }
             Section("My Codes") {
                 Toggle("Code verified", isOn: Binding(
-                    get: { codeVerified },
-                    set: { if $0 { pendingPerm = .notification } else { codeVerified = false } }
+                    get: { authService.notificationPrefs.codeVerified },
+                    set: { on in
+                        if on { pendingPerm = .notification }
+                        else { authService.updateNotificationPrefs { $0.codeVerified = false } }
+                    }
                 ))
                 Toggle("Code flagged", isOn: Binding(
-                    get: { codeFlagged },
-                    set: { if $0 { pendingPerm = .notification } else { codeFlagged = false } }
+                    get: { authService.notificationPrefs.codeFlagged },
+                    set: { on in
+                        if on { pendingPerm = .notification }
+                        else { authService.updateNotificationPrefs { $0.codeFlagged = false } }
+                    }
                 ))
-                Toggle("Comments on my codes", isOn: $comments)
+                Toggle("Suggestions on my codes", isOn: Binding(
+                    get: { authService.notificationPrefs.suggestions },
+                    set: { on in authService.updateNotificationPrefs { $0.suggestions = on } }
+                ))
             }
             Section("Schedule") {
-                Toggle("Quiet hours (10 PM – 8 AM)", isOn: $quietHours)
+                Toggle("Quiet hours (10 PM – 8 AM)", isOn: Binding(
+                    get: { authService.notificationPrefs.quietHours },
+                    set: { on in authService.updateNotificationPrefs { $0.quietHours = on } }
+                ))
             }
         }
         .scrollContentBackground(.hidden)
@@ -62,8 +79,10 @@ struct NotificationPrefsView: View {
         .sheet(item: $pendingPerm) { perm in
             PermissionSheet(perm: perm) { granted in
                 switch perm {
-                case .location:     nearbyNew    = granted
-                case .notification: codeVerified = granted; codeFlagged = granted
+                case .location:
+                    authService.updateNotificationPrefs { $0.nearbyNew = granted }
+                case .notification:
+                    authService.updateNotificationPrefs { $0.codeVerified = granted; $0.codeFlagged = granted }
                 }
                 pendingPerm = nil
             }

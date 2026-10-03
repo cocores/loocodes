@@ -46,6 +46,11 @@ rules_version = '2';
 //   - email: string or null, optional, <=320 chars when present
 //   - provider: string, required, one of 'apple.com' | 'google.com'
 //   - createdAt: number (epoch ms), required, immutable after create
+//   - notificationPrefs: map, OPTIONAL — absent on profiles created before
+//       this field existed, and nothing re-validates old profiles that
+//       haven't been touched since. When present, must be exactly these 6
+//       bools (see isValidNotificationPrefs()): nearbyNew, weeklyDigest,
+//       codeVerified, codeFlagged, suggestions, quietHours.
 //
 // Contains PII (email), so unlike `bathrooms`, `users` documents are
 // readable only by their own owner — there is no public-profile feature in
@@ -251,11 +256,28 @@ service cloud.firestore {
 
       function isValidUserProfile() {
         let data = request.resource.data;
-        return data.keys().hasOnly(['displayName', 'email', 'provider', 'createdAt'])
+        return data.keys().hasOnly(['displayName', 'email', 'provider', 'createdAt', 'notificationPrefs'])
           && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
           && (data.email == null || (data.email is string && data.email.size() <= 320))
           && data.provider is string && data.provider in ['apple.com', 'google.com']
-          && data.createdAt is number;
+          && data.createdAt is number
+          // Optional rather than required: profiles created before this field
+          // existed don't have it, and a write that doesn't touch it (e.g. a
+          // future displayName edit) must still validate without it.
+          && (!('notificationPrefs' in data) || isValidNotificationPrefs(data.notificationPrefs));
+      }
+
+      function isValidNotificationPrefs(prefs) {
+        return prefs is map
+          && prefs.keys().hasOnly([
+              'nearbyNew', 'weeklyDigest', 'codeVerified', 'codeFlagged', 'suggestions', 'quietHours',
+            ])
+          && prefs.nearbyNew is bool
+          && prefs.weeklyDigest is bool
+          && prefs.codeVerified is bool
+          && prefs.codeFlagged is bool
+          && prefs.suggestions is bool
+          && prefs.quietHours is bool;
       }
     }
   }

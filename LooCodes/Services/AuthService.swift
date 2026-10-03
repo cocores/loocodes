@@ -16,6 +16,9 @@ final class AuthService {
     var user: User?
     var isLoading = true
     var errorMessage: String?
+    /// Stored on this account's Firestore profile, not locally, so it's
+    /// consistent across every device this account signs into.
+    var notificationPrefs = NotificationPrefs()
 
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var currentNonce: String?
@@ -25,6 +28,45 @@ final class AuthService {
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
             self?.isLoading = false
+            guard let uid = user?.uid else {
+                self?.notificationPrefs = NotificationPrefs()
+                return
+            }
+            Task { await self?.loadNotificationPrefs(uid: uid) }
+        }
+    }
+
+    // MARK: - Notification preferences
+
+    /// A brand-new sign-in's profile doc may not exist yet (upsertUserProfile
+    /// runs fire-and-forget right after sign-in below) — fetchNotificationPrefs
+    /// already falls back to all-off defaults for a missing doc/field, which
+    /// is the right value for a brand-new account anyway, so there's nothing
+    /// to race here.
+    @MainActor
+    private func loadNotificationPrefs(uid: String) async {
+        do {
+            notificationPrefs = try await FirestoreService.fetchNotificationPrefs(uid: uid)
+        } catch {
+            print("Failed to load notification prefs:", error)
+        }
+    }
+
+    /// Patches just the fields the transform touches and persists the full
+    /// resulting object — callers never need to read the current value
+    /// first. Patched into local state *before* the network call, same
+    /// reasoning as BathroomStore's optimistic writes.
+    func updateNotificationPrefs(_ transform: (inout NotificationPrefs) -> Void) {
+        guard let uid = user?.uid else { return }
+        var next = notificationPrefs
+        transform(&next)
+        notificationPrefs = next
+        Task {
+            do {
+                try await FirestoreService.updateNotificationPrefs(uid: uid, prefs: next)
+            } catch {
+                print("Failed to update notification prefs:", error)
+            }
         }
     }
 

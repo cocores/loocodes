@@ -3,10 +3,14 @@ import { isFirebaseConfigured } from "../lib/firebase";
 import {
   completeRedirectSignIn,
   deleteAccount,
+  DEFAULT_NOTIFICATION_PREFS,
+  getNotificationPrefs,
   signInWithApple,
   signInWithGoogle,
   signOutUser,
   subscribeToAuthState,
+  updateNotificationPrefs,
+  type NotificationPrefs,
   type User,
 } from "../lib/auth";
 
@@ -21,6 +25,10 @@ interface AuthContextValue {
    * a "recent" sign-in before letting an account delete itself), sets
    * `error` with a message the caller can show, and returns false. */
   deleteAccount: () => Promise<boolean>;
+  notificationPrefs: NotificationPrefs;
+  /** Patches just the given keys and persists the full resulting object —
+   * callers never need to read the current value first. */
+  updateNotificationPrefs: (patch: Partial<NotificationPrefs>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -29,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -48,6 +57,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setNotificationPrefs(DEFAULT_NOTIFICATION_PREFS);
+      return;
+    }
+    let cancelled = false;
+    // A brand-new sign-in's profile doc may not exist yet (ensureUserProfile
+    // runs fire-and-forget in subscribeToAuthState) — getNotificationPrefs
+    // already falls back to all-off defaults for a missing doc, which is the
+    // right value for a brand-new account anyway, so there's nothing to race.
+    getNotificationPrefs(user.uid).then((prefs) => {
+      if (!cancelled) setNotificationPrefs(prefs);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -90,8 +117,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return false;
         }
       },
+      notificationPrefs,
+      updateNotificationPrefs: async (patch) => {
+        if (!user) return;
+        const next = { ...notificationPrefs, ...patch };
+        // Optimistic, same as every other write in this app — reflect the
+        // change locally immediately rather than waiting on the round trip.
+        setNotificationPrefs(next);
+        await updateNotificationPrefs(user.uid, next);
+      },
     }),
-    [user, isLoading, error],
+    [user, isLoading, error, notificationPrefs],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -103,7 +103,7 @@ struct ProfileView: View {
                                 .padding(.horizontal, 20)
                         } else {
                             ForEach(myCodes) { b in
-                                MyCodeCard(bathroom: b)
+                                MyCodeCard(bathroom: b, showSuggestionBadge: authService.notificationPrefs.suggestions)
                                     .padding(.horizontal, 20)
                             }
                         }
@@ -205,6 +205,7 @@ struct StatBubble: View {
 // MARK: - My Code Card
 struct MyCodeCard: View {
     let bathroom: Bathroom
+    let showSuggestionBadge: Bool
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: bathroom.type.sfSymbol)
@@ -221,6 +222,15 @@ struct MyCodeCard: View {
                 Text(bathroom.address)
                     .font(.caption)
                     .foregroundStyle(Color(hex: "8888aa"))
+                // Gated on the "Suggestions on my codes" notification
+                // preference — the one real, visible effect that toggle
+                // has, since there's no push-notification delivery behind
+                // any of these prefs.
+                if showSuggestionBadge && !bathroom.suggestions.isEmpty {
+                    Text("💬 \(bathroom.suggestions.count) suggestion\(bathroom.suggestions.count == 1 ? "" : "s")")
+                        .font(.caption2)
+                        .foregroundStyle(Color(hex: "5b9ef5"))
+                }
             }
             Spacer()
 

@@ -22,7 +22,7 @@ type Screen = "profile" | "notifications" | "privacy" | "about" | "flagged";
 
 export function ProfileView() {
   const { myCodes, bathrooms, votedUpIds, flaggedIds } = useBathroomStore();
-  const { user, signOut } = useAuth();
+  const { user, signOut, notificationPrefs } = useAuth();
   const [screen, setScreen] = useState<Screen>("profile");
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -126,7 +126,11 @@ export function ProfileView() {
           ) : (
             <div className="profile-view__codes">
               {myCodes.map((b) => (
-                <MyCodeCard key={b.id} bathroom={b} />
+                <MyCodeCard
+                  key={b.id}
+                  bathroom={b}
+                  showSuggestionBadge={notificationPrefs.suggestions}
+                />
               ))}
             </div>
           )}
@@ -267,7 +271,13 @@ function StatBubble({ value, label }: { value: number; label: string }) {
   );
 }
 
-function MyCodeCard({ bathroom }: { bathroom: Bathroom }) {
+function MyCodeCard({
+  bathroom,
+  showSuggestionBadge,
+}: {
+  bathroom: Bathroom;
+  showSuggestionBadge: boolean;
+}) {
   const info = bathroomType(bathroom.type);
   return (
     <div className="my-code-card">
@@ -275,6 +285,14 @@ function MyCodeCard({ bathroom }: { bathroom: Bathroom }) {
       <div className="my-code-card__info">
         <div className="my-code-card__name">{bathroom.name}</div>
         <div className="my-code-card__address">{bathroom.address}</div>
+        {/* Gated on the "Suggestions on my codes" notification preference —
+            the one real, visible effect that toggle has, since there's no
+            push-notification delivery behind any of these prefs. */}
+        {showSuggestionBadge && bathroom.suggestions.length > 0 && (
+          <div className="my-code-card__suggestions">
+            💬 {bathroom.suggestions.length} suggestion{bathroom.suggestions.length === 1 ? "" : "s"}
+          </div>
+        )}
       </div>
       <div className="my-code-card__right">
         <CodeBadge code={bathroom.code} isFreeNoCode={bathroom.isFree && !bathroom.code} />

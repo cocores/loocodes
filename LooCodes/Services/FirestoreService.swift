@@ -228,10 +228,53 @@ enum FirestoreService {
             "email": email ?? NSNull(),
             "provider": provider,
             "createdAt": Int64(Date().timeIntervalSince1970 * 1000),
+            "notificationPrefs": dictionary(from: NotificationPrefs()),
         ])
     }
 
     static func deleteUserProfile(uid: String) async throws {
         try await Firestore.firestore().collection("users").document(uid).delete()
+    }
+
+    // MARK: - Notification preferences
+
+    /// A brand-new sign-in's profile doc may not exist yet (upsertUserProfile
+    /// above runs fire-and-forget from AuthService) — a missing doc or a
+    /// missing/malformed notificationPrefs field both just fall back to
+    /// all-false, which is the right value for a brand-new account anyway.
+    static func fetchNotificationPrefs(uid: String) async throws -> NotificationPrefs {
+        let snapshot = try await Firestore.firestore().collection("users").document(uid).getDocument()
+        guard let dict = snapshot.data()?["notificationPrefs"] as? [String: Any] else {
+            return NotificationPrefs()
+        }
+        return notificationPrefs(from: dict)
+    }
+
+    static func updateNotificationPrefs(uid: String, prefs: NotificationPrefs) async throws {
+        try await Firestore.firestore().collection("users").document(uid).updateData([
+            "notificationPrefs": dictionary(from: prefs),
+        ])
+    }
+
+    private static func dictionary(from prefs: NotificationPrefs) -> [String: Any] {
+        [
+            "nearbyNew": prefs.nearbyNew,
+            "weeklyDigest": prefs.weeklyDigest,
+            "codeVerified": prefs.codeVerified,
+            "codeFlagged": prefs.codeFlagged,
+            "suggestions": prefs.suggestions,
+            "quietHours": prefs.quietHours,
+        ]
+    }
+
+    private static func notificationPrefs(from dict: [String: Any]) -> NotificationPrefs {
+        var prefs = NotificationPrefs()
+        prefs.nearbyNew = dict["nearbyNew"] as? Bool ?? false
+        prefs.weeklyDigest = dict["weeklyDigest"] as? Bool ?? false
+        prefs.codeVerified = dict["codeVerified"] as? Bool ?? false
+        prefs.codeFlagged = dict["codeFlagged"] as? Bool ?? false
+        prefs.suggestions = dict["suggestions"] as? Bool ?? false
+        prefs.quietHours = dict["quietHours"] as? Bool ?? false
+        return prefs
     }
 }

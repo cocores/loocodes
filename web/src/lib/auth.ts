@@ -10,10 +10,28 @@ import {
   type AuthProvider as FirebaseAuthProvider,
   type User,
 } from "firebase/auth";
-import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { getDb, getFirebaseAuth } from "./firebase";
 
 export type { User };
+
+export interface NotificationPrefs {
+  nearbyNew: boolean;
+  weeklyDigest: boolean;
+  codeVerified: boolean;
+  codeFlagged: boolean;
+  suggestions: boolean;
+  quietHours: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  nearbyNew: false,
+  weeklyDigest: false,
+  codeVerified: false,
+  codeFlagged: false,
+  suggestions: false,
+  quietHours: false,
+};
 
 export function subscribeToAuthState(onChange: (user: User | null) => void): () => void {
   return onAuthStateChanged(getFirebaseAuth(), (user) => {
@@ -124,5 +142,19 @@ async function ensureUserProfile(user: User): Promise<void> {
     email: user.email,
     provider,
     createdAt: Date.now(),
+    notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   });
+}
+
+/** Profiles created before notificationPrefs existed don't have it at all —
+ * callers always get a complete object back, defaulted to all-off, so they
+ * never have to branch on whether the field is present. */
+export async function getNotificationPrefs(uid: string): Promise<NotificationPrefs> {
+  const snap = await getDoc(doc(getDb(), "users", uid));
+  const stored = snap.data()?.notificationPrefs as Partial<NotificationPrefs> | undefined;
+  return { ...DEFAULT_NOTIFICATION_PREFS, ...stored };
+}
+
+export async function updateNotificationPrefs(uid: string, prefs: NotificationPrefs): Promise<void> {
+  await updateDoc(doc(getDb(), "users", uid), { notificationPrefs: prefs });
 }

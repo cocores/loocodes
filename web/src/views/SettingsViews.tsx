@@ -35,19 +35,16 @@ const PERMISSION_INFO: Record<PermType, { title: string; icon: string; body: str
 };
 
 export function NotificationPrefsView({ onBack }: SubScreenProps) {
-  const [nearbyNew, setNearbyNew] = useState(false);
-  const [codeVerified, setCodeVerified] = useState(false);
-  const [codeFlagged, setCodeFlagged] = useState(false);
-  const [quietHours, setQuietHours] = useState(false);
-  const [weeklyDigest, setWeeklyDigest] = useState(false);
-  const [comments, setComments] = useState(false);
+  // Persisted on this account's Firestore profile (notificationPrefs) rather
+  // than local-only state — these used to just reset to off every time this
+  // screen was reopened, which made them look broken even when "on."
+  const { notificationPrefs: prefs, updateNotificationPrefs } = useAuth();
   const [pendingPerm, setPendingPerm] = useState<PermType | null>(null);
 
   const resolvePermission = (granted: boolean) => {
-    if (pendingPerm === "location") setNearbyNew(granted);
+    if (pendingPerm === "location") void updateNotificationPrefs({ nearbyNew: granted });
     if (pendingPerm === "notification") {
-      setCodeVerified(granted);
-      setCodeFlagged(granted);
+      void updateNotificationPrefs({ codeVerified: granted, codeFlagged: granted });
     }
     setPendingPerm(null);
   };
@@ -59,28 +56,46 @@ export function NotificationPrefsView({ onBack }: SubScreenProps) {
         <SettingsSection title="Nearby">
           <ToggleRow
             label="New codes near me"
-            checked={nearbyNew}
-            onChange={(v) => (v ? setPendingPerm("location") : setNearbyNew(false))}
+            checked={prefs.nearbyNew}
+            onChange={(v) =>
+              v ? setPendingPerm("location") : void updateNotificationPrefs({ nearbyNew: false })
+            }
           />
-          <ToggleRow label="Weekly digest" checked={weeklyDigest} onChange={setWeeklyDigest} />
+          <ToggleRow
+            label="Weekly digest"
+            checked={prefs.weeklyDigest}
+            onChange={(v) => void updateNotificationPrefs({ weeklyDigest: v })}
+          />
         </SettingsSection>
 
         <SettingsSection title="My Codes">
           <ToggleRow
             label="Code verified"
-            checked={codeVerified}
-            onChange={(v) => (v ? setPendingPerm("notification") : setCodeVerified(false))}
+            checked={prefs.codeVerified}
+            onChange={(v) =>
+              v ? setPendingPerm("notification") : void updateNotificationPrefs({ codeVerified: false })
+            }
           />
           <ToggleRow
             label="Code flagged"
-            checked={codeFlagged}
-            onChange={(v) => (v ? setPendingPerm("notification") : setCodeFlagged(false))}
+            checked={prefs.codeFlagged}
+            onChange={(v) =>
+              v ? setPendingPerm("notification") : void updateNotificationPrefs({ codeFlagged: false })
+            }
           />
-          <ToggleRow label="Comments on my codes" checked={comments} onChange={setComments} />
+          <ToggleRow
+            label="Suggestions on my codes"
+            checked={prefs.suggestions}
+            onChange={(v) => void updateNotificationPrefs({ suggestions: v })}
+          />
         </SettingsSection>
 
         <SettingsSection title="Schedule">
-          <ToggleRow label="Quiet hours (10 PM – 8 AM)" checked={quietHours} onChange={setQuietHours} />
+          <ToggleRow
+            label="Quiet hours (10 PM – 8 AM)"
+            checked={prefs.quietHours}
+            onChange={(v) => void updateNotificationPrefs({ quietHours: v })}
+          />
         </SettingsSection>
       </div>
 
