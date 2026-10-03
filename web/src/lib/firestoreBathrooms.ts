@@ -12,10 +12,13 @@ import {
 } from "firebase/firestore";
 import { getDb } from "./firebase";
 import {
+  ATHENS_TOILETS,
+  BARCELONA_TOILETS,
   BERLIN_TOILETS,
   DENVER_TOILETS,
   KANSAS_CITY_KS_TOILETS,
   KANSAS_CITY_MO_TOILETS,
+  LISBON_TOILETS,
   LONDON_TOILETS,
   LOS_ANGELES_TOILETS,
   MIAMI_TOILETS,
@@ -92,9 +95,12 @@ let seeded = false;
  * SF's Pit Stop program, Paris's sanisettes, Berlin's Wall-operated
  * toilets, Rome's P.Stop kiosks, Denver's/Miami's/Kansas City's park
  * restrooms, DC's rec centers and NPS Mall restrooms, St. Louis's Forest
- * Park and rec centers) into ANY deployment that's missing them (fresh or
- * already populated with real user data), keyed by their fixed ids so it's
- * idempotent. All writes share one batch and one up-front read. */
+ * Park and rec centers, Barcelona's self-cleaning WC cabins and Park Güell
+ * restrooms, Lisbon's historic WC kiosks and central gardens, Athens's
+ * National Garden/metro/Acropolis restrooms) into ANY deployment that's
+ * missing them (fresh or already populated with real user data), keyed by
+ * their fixed ids so it's idempotent. All writes share one batch and one
+ * up-front read. */
 async function ensureSeeded(): Promise<void> {
   if (seeded) return;
   const db = getDb();
@@ -136,6 +142,9 @@ async function ensureSeeded(): Promise<void> {
     ...KANSAS_CITY_MO_TOILETS,
     ...WASHINGTON_DC_TOILETS,
     ...ST_LOUIS_TOILETS,
+    ...BARCELONA_TOILETS,
+    ...LISBON_TOILETS,
+    ...ATHENS_TOILETS,
   ]) {
     if (!existingIds.has(toilet.id)) {
       batch.set(doc(db, COLLECTION, toilet.id), withVoteFields(toilet));

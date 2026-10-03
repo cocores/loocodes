@@ -136,7 +136,8 @@ service cloud.firestore {
           'london_toilets', 'la_public_data', 'sf_public_works', 'paris_opendata',
           'berlin_opendata', 'rome_pstop', 'denver_opendata', 'miami_dade_opendata',
           'kck_opendata', 'kcmo_parksrec', 'dc_opendata', 'nps_mall',
-          'stl_forestpark', 'stl_parksrec',
+          'stl_forestpark', 'stl_parksrec', 'barcelona_opendata', 'lisboa_opendata',
+          'athens_opendata',
         ];
       }
 
