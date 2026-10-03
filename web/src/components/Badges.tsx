@@ -11,7 +11,7 @@ export function TypeBadge({ type }: { type: BathroomTypeId }) {
 }
 
 export function CodeBadge({ code, isFreeNoCode }: { code: string; isFreeNoCode: boolean }) {
-  return <span className="badge badge--code">{isFreeNoCode ? "FREE" : code}</span>;
+  return <span className="badge badge--code">{isFreeNoCode ? "🔑 FREE" : `🔑 ${code}`}</span>;
 }
 
 export function ADABadge() {

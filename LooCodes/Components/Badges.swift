@@ -21,14 +21,17 @@ struct CodeBadge: View {
     let isFreeNoCode: Bool
 
     var body: some View {
-        Text(isFreeNoCode ? "FREE" : code)
-            .font(.caption.weight(.bold))
-            .monospaced()
-            .foregroundStyle(Color(hex: "34c759"))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(hex: "0d2b12"))
-            .clipShape(Capsule())
+        HStack(spacing: 4) {
+            Image(systemName: "key.fill")
+            Text(isFreeNoCode ? "FREE" : code)
+                .monospaced()
+        }
+        .font(.caption.weight(.bold))
+        .foregroundStyle(Color(hex: "34c759"))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color(hex: "0d2b12"))
+        .clipShape(Capsule())
     }
 }
 
