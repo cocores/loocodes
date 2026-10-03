@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import "leaflet.markercluster";
 import type { Coordinate } from "../hooks/useLocation";
 import { bathroomType, type Bathroom } from "../types";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "./BathroomsMap.css";
 
 const DEFAULT_CENTER: L.LatLngExpression = [40.758, -73.9855];
@@ -25,6 +28,18 @@ function emojiIcon(emoji: string): L.DivIcon {
   });
 }
 
+// Matches the app's dark theme instead of the library's default
+// light/yellow circles — see BathroomsMap.css's .bathrooms-map__cluster.
+function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
+  const count = cluster.getChildCount();
+  return L.divIcon({
+    className: "bathrooms-map__cluster",
+    html: `<span class="bathrooms-map__cluster-badge">${count}</span>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+}
+
 interface BathroomsMapProps {
   bathrooms: Bathroom[];
   userLocation: Coordinate | null;
@@ -39,7 +54,7 @@ interface BathroomsMapProps {
 export function BathroomsMap({ bathrooms, userLocation, onSelect, height, onMapClick }: BathroomsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -61,27 +76,48 @@ export function BathroomsMap({ bathrooms, userLocation, onSelect, height, onMapC
       // for taps on empty map area.
       onMapClickRef.current?.({ latitude: e.latlng.lat, longitude: e.latlng.lng });
     });
+
+    // Without clustering, a dense area (a busy downtown with dozens of
+    // listings a block apart) renders its pins stacked directly on top of
+    // each other — a tap then resolves to whichever one happens to be on
+    // top in the DOM, not the one the user meant. Clustering keeps pins far
+    // enough apart to always be unambiguous: it groups nearby markers into
+    // a single tappable badge that expands as you zoom in or tap it, and
+    // spiderfies markers that share the exact same coordinate once zoomed
+    // all the way in, so even an exact duplicate location stays tappable.
+    const clusterGroup = L.markerClusterGroup({
+      iconCreateFunction: clusterIcon,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      maxClusterRadius: 60,
+    });
+    clusterGroup.addTo(map);
+    clusterGroupRef.current = clusterGroup;
+
     mapRef.current = map;
     setReady(true);
     return () => {
       map.remove();
       mapRef.current = null;
+      clusterGroupRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const clusterGroup = clusterGroupRef.current;
+    if (!map || !clusterGroup) return;
 
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = bathrooms.map((b) => {
+    clusterGroup.clearLayers();
+    const markers = bathrooms.map((b) => {
       const marker = L.marker([b.latitude, b.longitude], {
         icon: emojiIcon(bathroomType(b.type).emoji),
         title: b.name,
-      }).addTo(map);
+      });
       marker.on("click", () => onSelectRef.current(b));
       return marker;
     });
+    clusterGroup.addLayers(markers);
 
     const points: L.LatLngExpression[] = bathrooms.map((b) => [b.latitude, b.longitude]);
     if (userLocation) points.push([userLocation.latitude, userLocation.longitude]);

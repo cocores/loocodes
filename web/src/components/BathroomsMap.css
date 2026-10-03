@@ -71,3 +71,20 @@
   border: 2px solid #fff;
   box-shadow: 0 0 0 3px rgba(91, 158, 245, 0.35);
 }
+
+/* Overrides leaflet.markercluster's default light/yellow circles to match
+   the app's dark theme and the individual pins' own styling. */
+.bathrooms-map__cluster-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #1a1a1f;
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
