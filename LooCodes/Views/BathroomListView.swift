@@ -33,11 +33,11 @@ struct BathroomListView: View {
                             selectedType = nil; adaOnly = false
                         }
                         ForEach(BathroomType.allCases) { t in
-                            FilterChip("\(t.emoji) \(t.label)", isSelected: selectedType == t) {
+                            FilterChip(t.label, icon: t.emoji, isSelected: selectedType == t) {
                                 selectedType = (selectedType == t) ? nil : t
                             }
                         }
-                        FilterChip("♿ ADA", isSelected: adaOnly, isDashed: true) {
+                        FilterChip("ADA", icon: "♿", isSelected: adaOnly, isDashed: true) {
                             adaOnly.toggle()
                         }
                     }

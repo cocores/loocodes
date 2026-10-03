@@ -63,7 +63,7 @@ struct ShareView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(BathroomType.allCases) { t in
-                                    FilterChip("\(t.emoji) \(t.label)", isSelected: type == t) {
+                                    FilterChip(t.label, icon: t.emoji, isSelected: type == t) {
                                         type = t
                                     }
                                 }
@@ -75,9 +75,14 @@ struct ShareView: View {
                         HStack(spacing: 0) {
                             ForEach([true, false], id: \.self) { free in
                                 Button { isFree = free } label: {
-                                    Text(free ? "🆓 Free" : "💰 Paid")
+                                    // .foregroundColor (not .foregroundStyle)
+                                    // on just the label segment — see
+                                    // Components/Badges.swift's TypeBadge for
+                                    // why.
+                                    (Text(free ? "🆓" : "💰")
+                                        + Text(free ? " Free" : " Paid")
+                                            .foregroundColor(isFree == free ? Color(hex: "1a1a1f") : Color(hex: "8888aa")))
                                         .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(isFree == free ? Color(hex: "1a1a1f") : Color(hex: "8888aa"))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
                                         .background(
@@ -299,9 +304,11 @@ struct PublishOverlay: View {
                         .font(.system(size: 72))
                         .foregroundStyle(Color(hex: "34c759"))
 
-                    Text("Code Published! 🎉")
+                    // .foregroundColor (not .foregroundStyle) on just the
+                    // text segment — see Components/Badges.swift's TypeBadge
+                    // for why.
+                    (Text("Code Published! ").foregroundColor(.white) + Text("🎉"))
                         .font(.title.weight(.bold))
-                        .foregroundStyle(.white)
 
                     if let b = bathroom {
                         VStack(spacing: 8) {
