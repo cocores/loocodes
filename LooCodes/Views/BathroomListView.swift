@@ -33,11 +33,11 @@ struct BathroomListView: View {
                             selectedType = nil; adaOnly = false
                         }
                         ForEach(BathroomType.allCases) { t in
-                            FilterChip(t.label, icon: t.emoji, isSelected: selectedType == t) {
+                            FilterChip(t.label, icon: t.sfSymbol, isSelected: selectedType == t) {
                                 selectedType = (selectedType == t) ? nil : t
                             }
                         }
-                        FilterChip("ADA", icon: "♿", isSelected: adaOnly, isDashed: true) {
+                        FilterChip("ADA", icon: "figure.roll", isSelected: adaOnly, isDashed: true) {
                             adaOnly.toggle()
                         }
                     }
@@ -158,7 +158,9 @@ struct BathroomCard: View {
             // Note
             if !current.note.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
-                    Text("📝").font(.caption)
+                    Image(systemName: "note.text")
+                        .font(.caption)
+                        .foregroundStyle(Color(hex: "aaaacc"))
                     Text(current.note)
                         .font(.caption).italic()
                         .foregroundStyle(Color(hex: "aaaacc"))
@@ -170,7 +172,9 @@ struct BathroomCard: View {
 
             if hasBeenFlagged {
                 HStack(alignment: .top, spacing: 6) {
-                    Text("🚩").font(.caption)
+                    Image(systemName: "flag.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color(hex: "ff9500"))
                     Text("Flagged — someone reported this may be incorrect or no longer available.")
                         .font(.caption)
                         .foregroundStyle(Color(hex: "ff9500"))

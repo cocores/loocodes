@@ -7,12 +7,9 @@ struct FilterChip: View {
     let isDashed: Bool
     let action: () -> Void
 
-    // `icon` is kept as a separate segment from `label` rather than baked
-    // into one combined string — applying .foregroundStyle() to a Text that
-    // mixes plain characters with a color emoji can make iOS fall back to
-    // rendering the emoji as a monochrome "tofu" box instead of its native
-    // glyph. Styling only the label segment keeps the emoji in its native
-    // color regardless of selection state.
+    // `icon` is an SF Symbol name, not a Unicode emoji — native iOS
+    // iconography, tintable without any risk of the color-emoji "tofu box"
+    // rendering bug plain emoji are prone to when styled.
     init(_ label: String, icon: String? = nil, isSelected: Bool, isDashed: Bool = false, action: @escaping () -> Void) {
         self.label = label
         self.icon = icon
@@ -27,17 +24,13 @@ struct FilterChip: View {
 
     var body: some View {
         Button(action: action) {
-            Group {
-                // .foregroundColor (not .foregroundStyle) is what's needed
-                // here — it's the one overload defined directly on Text that
-                // returns Text instead of `some View`, which is required for
-                // the `+` concatenation below to type-check.
+            HStack(spacing: 6) {
                 if let icon {
-                    Text(icon) + Text(" \(label)").foregroundColor(labelColor)
-                } else {
-                    Text(label).foregroundColor(labelColor)
+                    Image(systemName: icon)
                 }
+                Text(label)
             }
+            .foregroundStyle(labelColor)
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, 14)
             .padding(.vertical, 8)

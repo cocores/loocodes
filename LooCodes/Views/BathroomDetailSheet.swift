@@ -96,7 +96,8 @@ struct BathroomDetailSheet: View {
                 // Note
                 if !current.note.isEmpty {
                     HStack(alignment: .top, spacing: 8) {
-                        Text("📝")
+                        Image(systemName: "note.text")
+                            .foregroundStyle(Color(hex: "8888aa"))
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Note")
                                 .font(.caption.weight(.semibold))
@@ -117,7 +118,8 @@ struct BathroomDetailSheet: View {
                 // governs whether this account can still tap Flag.
                 if hasBeenFlagged {
                     HStack(alignment: .top, spacing: 8) {
-                        Text("🚩")
+                        Image(systemName: "flag.fill")
+                            .foregroundStyle(Color(hex: "ff9500"))
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Flagged")
                                 .font(.caption.weight(.semibold))

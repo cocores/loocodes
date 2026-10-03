@@ -63,7 +63,7 @@ struct ShareView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(BathroomType.allCases) { t in
-                                    FilterChip(t.label, icon: t.emoji, isSelected: type == t) {
+                                    FilterChip(t.label, icon: t.sfSymbol, isSelected: type == t) {
                                         type = t
                                     }
                                 }
@@ -75,21 +75,19 @@ struct ShareView: View {
                         HStack(spacing: 0) {
                             ForEach([true, false], id: \.self) { free in
                                 Button { isFree = free } label: {
-                                    // .foregroundColor (not .foregroundStyle)
-                                    // on just the label segment — see
-                                    // Components/Badges.swift's TypeBadge for
-                                    // why.
-                                    (Text(free ? "🆓" : "💰")
-                                        + Text(free ? " Free" : " Paid")
-                                            .foregroundColor(isFree == free ? Color(hex: "1a1a1f") : Color(hex: "8888aa")))
-                                        .font(.subheadline.weight(.semibold))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(
-                                            isFree == free
-                                            ? (free ? Color(hex: "34c759") : Color(hex: "f5a623"))
-                                            : Color(hex: "252530")
-                                        )
+                                    HStack(spacing: 6) {
+                                        Image(systemName: free ? "checkmark.circle.fill" : "dollarsign.circle.fill")
+                                        Text(free ? "Free" : "Paid")
+                                    }
+                                    .foregroundStyle(isFree == free ? Color(hex: "1a1a1f") : Color(hex: "8888aa"))
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        isFree == free
+                                        ? (free ? Color(hex: "34c759") : Color(hex: "f5a623"))
+                                        : Color(hex: "252530")
+                                    )
                                 }
                             }
                         }
@@ -108,7 +106,7 @@ struct ShareView: View {
                     FormField(label: "Accessibility") {
                         Toggle(isOn: $isADA) {
                             HStack {
-                                Text("♿").font(.title3)
+                                Image(systemName: "figure.roll").font(.title3)
                                 Text("ADA Accessible").foregroundStyle(.white)
                             }
                         }
@@ -145,7 +143,7 @@ struct ShareView: View {
                     .disabled(!canShare)
 
                     if let publishError {
-                        Text("⚠ \(publishError)")
+                        Label(publishError, systemImage: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundStyle(Color(hex: "ff4d4f"))
                     }
@@ -304,11 +302,13 @@ struct PublishOverlay: View {
                         .font(.system(size: 72))
                         .foregroundStyle(Color(hex: "34c759"))
 
-                    // .foregroundColor (not .foregroundStyle) on just the
-                    // text segment — see Components/Badges.swift's TypeBadge
-                    // for why.
-                    (Text("Code Published! ").foregroundColor(.white) + Text("🎉"))
-                        .font(.title.weight(.bold))
+                    HStack(spacing: 8) {
+                        Text("Code Published!")
+                            .foregroundStyle(.white)
+                        Image(systemName: "party.popper.fill")
+                            .foregroundStyle(Color(hex: "f5a623"))
+                    }
+                    .font(.title.weight(.bold))
 
                     if let b = bathroom {
                         VStack(spacing: 8) {

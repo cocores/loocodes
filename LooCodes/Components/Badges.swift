@@ -3,18 +3,16 @@ import SwiftUI
 struct TypeBadge: View {
     let type: BathroomType
     var body: some View {
-        // .foregroundColor (not .foregroundStyle) on just the label segment,
-        // concatenated with the bare emoji — tinting a Text that mixes plain
-        // characters with a color emoji via .foregroundStyle can make iOS
-        // render the emoji as a monochrome "tofu" box instead of its native
-        // glyph, and .foregroundStyle doesn't return Text so it can't be
-        // used inside a `+` concatenation anyway.
-        (Text(type.emoji) + Text(" \(type.label)").foregroundColor(.white))
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(hex: "3a3a4a"))
-            .clipShape(Capsule())
+        HStack(spacing: 4) {
+            Image(systemName: type.sfSymbol)
+            Text(type.label)
+        }
+        .foregroundStyle(.white)
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color(hex: "3a3a4a"))
+        .clipShape(Capsule())
     }
 }
 
@@ -50,18 +48,20 @@ struct PriceBadge: View {
     let isFree: Bool
     let feeAmount: String
 
-    private var icon: String { isFree ? "🆓" : "💰" }
+    private var icon: String { isFree ? "checkmark.circle.fill" : "dollarsign.circle.fill" }
     private var label: String { isFree ? "Free" : (feeAmount.isEmpty ? "Paid" : feeAmount) }
 
     var body: some View {
-        // See TypeBadge above for why the emoji and label are concatenated
-        // as separate Text segments instead of one combined, tinted string.
-        (Text(icon) + Text(" \(label)").foregroundColor(isFree ? Color(hex: "34c759") : Color(hex: "f5a623")))
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(isFree ? Color(hex: "0d2b12") : Color(hex: "2a1d00"))
-            .clipShape(Capsule())
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(label)
+        }
+        .foregroundStyle(isFree ? Color(hex: "34c759") : Color(hex: "f5a623"))
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(isFree ? Color(hex: "0d2b12") : Color(hex: "2a1d00"))
+        .clipShape(Capsule())
     }
 }
 

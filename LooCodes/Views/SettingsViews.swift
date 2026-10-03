@@ -154,7 +154,7 @@ struct PrivacySettingsView: View {
                 }
             } footer: {
                 if let errorMessage = authService.errorMessage {
-                    Text("⚠ \(errorMessage)")
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .foregroundStyle(Color(hex: "ff4d4f"))
                 } else {
@@ -213,7 +213,7 @@ struct AboutView: View {
                     Label("Contact Us", systemImage: "envelope")
                 }
                 Link(destination: URL(string: "https://apps.apple.com")!) {
-                    Label("Rate on App Store ⭐", systemImage: "star")
+                    Label("Rate on App Store", systemImage: "star")
                 }
             }
         }

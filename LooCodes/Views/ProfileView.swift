@@ -186,8 +186,9 @@ struct MyCodeCard: View {
     let bathroom: Bathroom
     var body: some View {
         HStack(spacing: 12) {
-            Text(bathroom.type.emoji)
-                .font(.title2)
+            Image(systemName: bathroom.type.sfSymbol)
+                .font(.title3)
+                .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .background(bathroom.type.tagBgColor)
                 .clipShape(RoundedRectangle(cornerRadius: 10))

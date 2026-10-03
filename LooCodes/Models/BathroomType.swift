@@ -26,15 +26,18 @@ enum BathroomType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var emoji: String {
+    // SF Symbol name, not a Unicode emoji — native iOS iconography renders
+    // crisply at any size/tint and sidesteps the color-emoji "tofu box"
+    // rendering bug that plain emoji glyphs are prone to when styled.
+    var sfSymbol: String {
         switch self {
-        case .cafe:            return "☕️"
-        case .restaurant:      return "🍽️"
-        case .publicRestroom:  return "🚻"
-        case .gasStation:      return "⛽️"
-        case .store:           return "🏬"
-        case .park:            return "🌳"
-        case .hotel:           return "🏨"
+        case .cafe:            return "cup.and.saucer.fill"
+        case .restaurant:      return "fork.knife"
+        case .publicRestroom:  return "toilet.fill"
+        case .gasStation:      return "fuelpump.fill"
+        case .store:           return "building.2.fill"
+        case .park:            return "leaf.fill"
+        case .hotel:           return "bed.double.fill"
         }
     }
 

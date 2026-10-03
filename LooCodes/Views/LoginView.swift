@@ -8,8 +8,9 @@ struct LoginView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            Text("🚽")
+            Image(systemName: "toilet.fill")
                 .font(.system(size: 56))
+                .foregroundStyle(Color(hex: "5b9ef5"))
             Text("LooCodes")
                 .font(.system(size: 28, weight: .heavy))
                 .foregroundStyle(.white)
@@ -51,7 +52,7 @@ struct LoginView: View {
             .padding(.horizontal, 32)
 
             if let errorMessage = authService.errorMessage {
-                Text("⚠ \(errorMessage)")
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(Color(hex: "ff4d4f"))
                     .multilineTextAlignment(.center)
