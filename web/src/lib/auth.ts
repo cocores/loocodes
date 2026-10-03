@@ -33,6 +33,16 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   quietHours: false,
 };
 
+/** At most one of these is ever non-null — the client always nulls out the
+ * other one in the same write when switching avatar type (see
+ * setAvatarPhoto/setAvatarEmoji below). */
+export interface AvatarState {
+  avatarPhoto: string | null;
+  avatarEmoji: string | null;
+}
+
+export const DEFAULT_AVATAR: AvatarState = { avatarPhoto: null, avatarEmoji: null };
+
 export function subscribeToAuthState(onChange: (user: User | null) => void): () => void {
   return onAuthStateChanged(getFirebaseAuth(), (user) => {
     // Fires for every way a user ends up signed in (popup, redirect
@@ -143,6 +153,8 @@ async function ensureUserProfile(user: User): Promise<void> {
     provider,
     createdAt: Date.now(),
     notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
+    avatarPhoto: null,
+    avatarEmoji: null,
   });
 }
 
@@ -157,4 +169,31 @@ export async function getNotificationPrefs(uid: string): Promise<NotificationPre
 
 export async function updateNotificationPrefs(uid: string, prefs: NotificationPrefs): Promise<void> {
   await updateDoc(doc(getDb(), "users", uid), { notificationPrefs: prefs });
+}
+
+/** Same "always get a complete object back" reasoning as
+ * getNotificationPrefs — profiles created before this field existed just
+ * read back as no avatar set. */
+export async function getAvatar(uid: string): Promise<AvatarState> {
+  const snap = await getDoc(doc(getDb(), "users", uid));
+  const data = snap.data();
+  return {
+    avatarPhoto: (data?.avatarPhoto as string | null | undefined) ?? null,
+    avatarEmoji: (data?.avatarEmoji as string | null | undefined) ?? null,
+  };
+}
+
+/** `dataUrl` must already be a small, resized/compressed `data:image/...`
+ * string (see lib/image.ts's resizeImageToDataUrl) — firestore.rules caps
+ * avatarPhoto at 400,000 chars as a hard ceiling, not a target. */
+export async function setAvatarPhoto(uid: string, dataUrl: string): Promise<void> {
+  await updateDoc(doc(getDb(), "users", uid), { avatarPhoto: dataUrl, avatarEmoji: null });
+}
+
+export async function setAvatarEmoji(uid: string, emoji: string): Promise<void> {
+  await updateDoc(doc(getDb(), "users", uid), { avatarEmoji: emoji, avatarPhoto: null });
+}
+
+export async function clearAvatar(uid: string): Promise<void> {
+  await updateDoc(doc(getDb(), "users", uid), { avatarPhoto: null, avatarEmoji: null });
 }

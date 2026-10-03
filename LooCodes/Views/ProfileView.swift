@@ -9,8 +9,6 @@ struct ProfileView: View {
     @State private var showPhotoPicker  = false
     @State private var showEmojiPicker  = false
     @State private var selectedPhoto: PhotosPickerItem? = nil
-    @State private var avatarImage: Image?  = nil
-    @State private var avatarEmoji: String? = nil
 
     @State private var showNotifPrefs   = false
     @State private var showPrivacy      = false
@@ -145,23 +143,22 @@ struct ProfileView: View {
         .confirmationDialog("Change Photo", isPresented: $showPhotoOptions, titleVisibility: .visible) {
             Button("Photo Library")  { showPhotoPicker = true }
             Button("Choose Emoji")   { showEmojiPicker = true }
-            if avatarImage != nil || avatarEmoji != nil {
+            if authService.avatarPhoto != nil || authService.avatarEmoji != nil {
                 Button("Reset to Default", role: .destructive) {
-                    avatarImage = nil; avatarEmoji = nil
+                    authService.clearAvatar()
                 }
             }
             Button("Cancel", role: .cancel) {}
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
         .sheet(isPresented: $showEmojiPicker) {
-            EmojiPickerSheet(selected: $avatarEmoji)
+            EmojiPickerSheet(onSelect: { emoji in authService.setAvatarEmoji(emoji) })
         }
         .onChange(of: selectedPhoto) { _, item in
             Task {
                 if let data = try? await item?.loadTransferable(type: Data.self),
                    let ui = UIImage(data: data) {
-                    avatarImage = Image(uiImage: ui)
-                    avatarEmoji = nil
+                    authService.setAvatarPhoto(ui)
                 }
             }
         }
@@ -169,11 +166,11 @@ struct ProfileView: View {
 
     @ViewBuilder
     private var avatarView: some View {
-        if let img = avatarImage {
-            img.resizable().scaledToFill()
+        if let photo = authService.avatarPhoto {
+            Image(uiImage: photo).resizable().scaledToFill()
                 .frame(width: 88, height: 88)
                 .clipShape(Circle())
-        } else if let emoji = avatarEmoji {
+        } else if let emoji = authService.avatarEmoji {
             Text(emoji).font(.system(size: 52))
                 .frame(width: 88, height: 88)
                 .background(Color(hex: "252530"), in: Circle())
@@ -278,7 +275,7 @@ struct SettingsRow: View {
 
 // MARK: - Emoji Picker
 struct EmojiPickerSheet: View {
-    @Binding var selected: String?
+    let onSelect: (String) -> Void
     @Environment(\.dismiss) var dismiss
 
     private let emojis = [
@@ -291,7 +288,7 @@ struct EmojiPickerSheet: View {
         NavigationStack {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 16) {
                 ForEach(emojis, id: \.self) { e in
-                    Button { selected = e; dismiss() } label: {
+                    Button { onSelect(e); dismiss() } label: {
                         Text(e).font(.system(size: 44))
                     }
                 }

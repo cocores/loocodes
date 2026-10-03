@@ -1,15 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { isFirebaseConfigured } from "../lib/firebase";
 import {
+  clearAvatar,
   completeRedirectSignIn,
   deleteAccount,
+  DEFAULT_AVATAR,
   DEFAULT_NOTIFICATION_PREFS,
+  getAvatar,
   getNotificationPrefs,
+  setAvatarEmoji,
+  setAvatarPhoto,
   signInWithApple,
   signInWithGoogle,
   signOutUser,
   subscribeToAuthState,
   updateNotificationPrefs,
+  type AvatarState,
   type NotificationPrefs,
   type User,
 } from "../lib/auth";
@@ -29,6 +35,14 @@ interface AuthContextValue {
   /** Patches just the given keys and persists the full resulting object —
    * callers never need to read the current value first. */
   updateNotificationPrefs: (patch: Partial<NotificationPrefs>) => Promise<void>;
+  avatar: AvatarState;
+  /** `dataUrl` should already be resized/compressed — see lib/image.ts's
+   * resizeImageToDataUrl. Persists to this account's Firestore profile, so
+   * it loads on every device/session this account signs into, not just
+   * this browser. */
+  setAvatarPhoto: (dataUrl: string) => Promise<void>;
+  setAvatarEmoji: (emoji: string) => Promise<void>;
+  clearAvatar: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -38,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
+  const [avatar, setAvatar] = useState<AvatarState>(DEFAULT_AVATAR);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -61,15 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) {
       setNotificationPrefs(DEFAULT_NOTIFICATION_PREFS);
+      setAvatar(DEFAULT_AVATAR);
       return;
     }
     let cancelled = false;
     // A brand-new sign-in's profile doc may not exist yet (ensureUserProfile
-    // runs fire-and-forget in subscribeToAuthState) — getNotificationPrefs
-    // already falls back to all-off defaults for a missing doc, which is the
-    // right value for a brand-new account anyway, so there's nothing to race.
+    // runs fire-and-forget in subscribeToAuthState) — getNotificationPrefs/
+    // getAvatar already fall back to defaults for a missing doc, which is
+    // the right value for a brand-new account anyway, so there's nothing to
+    // race.
     getNotificationPrefs(user.uid).then((prefs) => {
       if (!cancelled) setNotificationPrefs(prefs);
+    });
+    getAvatar(user.uid).then((a) => {
+      if (!cancelled) setAvatar(a);
     });
     return () => {
       cancelled = true;
@@ -126,8 +146,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNotificationPrefs(next);
         await updateNotificationPrefs(user.uid, next);
       },
+      avatar,
+      setAvatarPhoto: async (dataUrl) => {
+        if (!user) return;
+        setAvatar({ avatarPhoto: dataUrl, avatarEmoji: null });
+        await setAvatarPhoto(user.uid, dataUrl);
+      },
+      setAvatarEmoji: async (emoji) => {
+        if (!user) return;
+        setAvatar({ avatarPhoto: null, avatarEmoji: emoji });
+        await setAvatarEmoji(user.uid, emoji);
+      },
+      clearAvatar: async () => {
+        if (!user) return;
+        setAvatar(DEFAULT_AVATAR);
+        await clearAvatar(user.uid);
+      },
     }),
-    [user, isLoading, error, notificationPrefs],
+    [user, isLoading, error, notificationPrefs, avatar],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

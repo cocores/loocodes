@@ -51,6 +51,13 @@ rules_version = '2';
 //       haven't been touched since. When present, must be exactly these 6
 //       bools (see isValidNotificationPrefs()): nearbyNew, weeklyDigest,
 //       codeVerified, codeFlagged, suggestions, quietHours.
+//   - avatarPhoto: string or null, optional, a full `data:image/...;base64,`
+//       URL (the client resizes/compresses to a small square before ever
+//       writing this — <=400000 chars is enforced here as a hard ceiling,
+//       not the expected size) — mutually exclusive with avatarEmoji; the
+//       client always nulls out the other one in the same write
+//   - avatarEmoji: string or null, optional, a single emoji — mutually
+//       exclusive with avatarPhoto
 //
 // Contains PII (email), so unlike `bathrooms`, `users` documents are
 // readable only by their own owner — there is no public-profile feature in
@@ -256,15 +263,28 @@ service cloud.firestore {
 
       function isValidUserProfile() {
         let data = request.resource.data;
-        return data.keys().hasOnly(['displayName', 'email', 'provider', 'createdAt', 'notificationPrefs'])
+        return data.keys().hasOnly([
+            'displayName', 'email', 'provider', 'createdAt', 'notificationPrefs',
+            'avatarPhoto', 'avatarEmoji',
+          ])
           && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
           && (data.email == null || (data.email is string && data.email.size() <= 320))
           && data.provider is string && data.provider in ['apple.com', 'google.com']
           && data.createdAt is number
-          // Optional rather than required: profiles created before this field
-          // existed don't have it, and a write that doesn't touch it (e.g. a
-          // future displayName edit) must still validate without it.
-          && (!('notificationPrefs' in data) || isValidNotificationPrefs(data.notificationPrefs));
+          // Optional rather than required: profiles created before these
+          // fields existed don't have them, and a write that doesn't touch
+          // one (e.g. a future displayName edit) must still validate
+          // without it.
+          && (!('notificationPrefs' in data) || isValidNotificationPrefs(data.notificationPrefs))
+          && (!('avatarPhoto' in data) || data.avatarPhoto == null ||
+              (data.avatarPhoto is string && data.avatarPhoto.size() <= 400000
+               && data.avatarPhoto.matches('^data:image/.*')))
+          && (!('avatarEmoji' in data) || data.avatarEmoji == null ||
+              (data.avatarEmoji is string && data.avatarEmoji.size() <= 32))
+          // Never both at once — the client always nulls out the other one
+          // in the same write when switching avatar type.
+          && !(('avatarPhoto' in data) && ('avatarEmoji' in data)
+               && data.avatarPhoto != null && data.avatarEmoji != null);
       }
 
       function isValidNotificationPrefs(prefs) {

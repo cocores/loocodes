@@ -1,5 +1,6 @@
 import FirebaseFirestore
 import Foundation
+import UIKit
 
 /// Mirrors web/src/lib/firestoreBathrooms.ts — same collection, same field
 /// shapes, same security rules. Deliberately avoids Firestore's Codable
@@ -229,6 +230,8 @@ enum FirestoreService {
             "provider": provider,
             "createdAt": Int64(Date().timeIntervalSince1970 * 1000),
             "notificationPrefs": dictionary(from: NotificationPrefs()),
+            "avatarPhoto": NSNull(),
+            "avatarEmoji": NSNull(),
         ])
     }
 
@@ -276,5 +279,87 @@ enum FirestoreService {
         prefs.suggestions = dict["suggestions"] as? Bool ?? false
         prefs.quietHours = dict["quietHours"] as? Bool ?? false
         return prefs
+    }
+
+    // MARK: - Avatar
+
+    /// Mirrors web/src/lib/auth.ts's avatarPhoto/avatarEmoji — stored as a
+    /// `data:image/jpeg;base64,...` string so either platform can decode
+    /// what the other wrote. At most one of the two is ever non-nil.
+    static func fetchAvatar(uid: String) async throws -> (photo: UIImage?, emoji: String?) {
+        let snapshot = try await Firestore.firestore().collection("users").document(uid).getDocument()
+        let data = snapshot.data()
+        let photo = (data?["avatarPhoto"] as? String).flatMap(decodeDataUrlImage)
+        let emoji = data?["avatarEmoji"] as? String
+        return (photo, emoji)
+    }
+
+    static func setAvatarPhoto(uid: String, image: UIImage) async throws {
+        guard let dataUrl = encodeDataUrlImage(image) else {
+            throw NSError(domain: "FirestoreService", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "Couldn't process that photo. Please try a different one.",
+            ])
+        }
+        try await Firestore.firestore().collection("users").document(uid).updateData([
+            "avatarPhoto": dataUrl,
+            "avatarEmoji": NSNull(),
+        ])
+    }
+
+    static func setAvatarEmoji(uid: String, emoji: String) async throws {
+        try await Firestore.firestore().collection("users").document(uid).updateData([
+            "avatarEmoji": emoji,
+            "avatarPhoto": NSNull(),
+        ])
+    }
+
+    static func clearAvatar(uid: String) async throws {
+        try await Firestore.firestore().collection("users").document(uid).updateData([
+            "avatarPhoto": NSNull(),
+            "avatarEmoji": NSNull(),
+        ])
+    }
+
+    /// Center-crops to a square and downsizes before ever encoding — a
+    /// full-resolution photo straight from the camera can be several MB,
+    /// far past what's sane for a Firestore document field (firestore.rules
+    /// caps avatarPhoto at 400,000 chars). A 256x256 JPEG at this quality is
+    /// typically well under 50KB.
+    private static func encodeDataUrlImage(_ image: UIImage, side: CGFloat = 256, quality: CGFloat = 0.72) -> String? {
+        let square = squareCropped(image, side: side)
+        guard let jpegData = square.jpegData(compressionQuality: quality) else { return nil }
+        return "data:image/jpeg;base64,\(jpegData.base64EncodedString())"
+    }
+
+    private static func decodeDataUrlImage(_ dataUrl: String) -> UIImage? {
+        guard let commaIndex = dataUrl.firstIndex(of: ",") else { return nil }
+        let base64Part = dataUrl[dataUrl.index(after: commaIndex)...]
+        guard let data = Data(base64Encoded: String(base64Part)) else { return nil }
+        return UIImage(data: data)
+    }
+
+    private static func squareCropped(_ image: UIImage, side: CGFloat) -> UIImage {
+        let shortSide = min(image.size.width, image.size.height)
+        let cropRectPoints = CGRect(
+            x: (image.size.width - shortSide) / 2,
+            y: (image.size.height - shortSide) / 2,
+            width: shortSide,
+            height: shortSide
+        )
+        let cropped: UIImage
+        if let cgImage = image.cgImage?.cropping(to: CGRect(
+            x: cropRectPoints.origin.x * image.scale,
+            y: cropRectPoints.origin.y * image.scale,
+            width: cropRectPoints.width * image.scale,
+            height: cropRectPoints.height * image.scale
+        )) {
+            cropped = UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        } else {
+            cropped = image
+        }
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
+        return renderer.image { _ in
+            cropped.draw(in: CGRect(x: 0, y: 0, width: side, height: side))
+        }
     }
 }

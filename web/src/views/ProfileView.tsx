@@ -3,6 +3,7 @@ import { useAuth } from "../store/AuthContext";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { bathroomType, type Bathroom } from "../types";
 import { CodeBadge } from "../components/Badges";
+import { resizeImageToDataUrl } from "../lib/image";
 import { AboutView, NotificationPrefsView, PrivacySettingsView } from "./SettingsViews";
 import { AdminFlaggedView } from "./AdminFlaggedView";
 import "./ProfileView.css";
@@ -22,13 +23,20 @@ type Screen = "profile" | "notifications" | "privacy" | "about" | "flagged";
 
 export function ProfileView() {
   const { myCodes, bathrooms, votedUpIds, flaggedIds } = useBathroomStore();
-  const { user, signOut, notificationPrefs } = useAuth();
+  const {
+    user,
+    signOut,
+    notificationPrefs,
+    avatar,
+    setAvatarPhoto,
+    setAvatarEmoji,
+    clearAvatar,
+  } = useAuth();
   const [screen, setScreen] = useState<Screen>("profile");
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [avatarImage, setAvatarImage] = useState<string | null>(null);
-  const [avatarEmoji, setAvatarEmoji] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const confirmLogout = () => {
@@ -55,14 +63,20 @@ export function ProfileView() {
   const confirmedByMeCount = votedUpIds.size;
   const flaggedByMeCount = flaggedIds.size;
 
-  const onFileChosen = (file: File | undefined) => {
+  const onFileChosen = async (file: File | undefined) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarImage(reader.result as string);
-      setAvatarEmoji(null);
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingPhoto(true);
+    try {
+      // Resized/compressed before it ever touches state or Firestore — a
+      // full-resolution phone photo read as-is can be several MB, far past
+      // what's sane for a profile avatar or a Firestore document field.
+      const dataUrl = await resizeImageToDataUrl(file);
+      await setAvatarPhoto(dataUrl);
+    } catch (err) {
+      console.error("Failed to set avatar photo", err);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   if (screen === "notifications") {
@@ -87,13 +101,14 @@ export function ProfileView() {
       <div className="profile-view__body">
         <button type="button" className="profile-view__avatar-btn" onClick={() => setShowPhotoOptions(true)}>
           <div className="profile-view__avatar">
-            {avatarImage ? (
-              <img src={avatarImage} alt="Avatar" />
-            ) : avatarEmoji ? (
-              <span className="profile-view__avatar-emoji">{avatarEmoji}</span>
+            {avatar.avatarPhoto ? (
+              <img src={avatar.avatarPhoto} alt="Avatar" />
+            ) : avatar.avatarEmoji ? (
+              <span className="profile-view__avatar-emoji">{avatar.avatarEmoji}</span>
             ) : (
               <span className="profile-view__avatar-placeholder">👤</span>
             )}
+            {isUploadingPhoto && <span className="profile-view__avatar-spinner" />}
           </div>
           <span className="profile-view__avatar-edit">✎</span>
         </button>
@@ -197,13 +212,12 @@ export function ProfileView() {
             >
               Choose Emoji
             </button>
-            {(avatarImage || avatarEmoji) && (
+            {(avatar.avatarPhoto || avatar.avatarEmoji) && (
               <button
                 type="button"
                 className="action-sheet__option action-sheet__option--destructive"
                 onClick={() => {
-                  setAvatarImage(null);
-                  setAvatarEmoji(null);
+                  void clearAvatar();
                   setShowPhotoOptions(false);
                 }}
               >
@@ -246,8 +260,7 @@ export function ProfileView() {
                   type="button"
                   className="emoji-sheet__emoji"
                   onClick={() => {
-                    setAvatarEmoji(e);
-                    setAvatarImage(null);
+                    void setAvatarEmoji(e);
                     setShowEmojiPicker(false);
                   }}
                 >

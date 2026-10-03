@@ -19,6 +19,10 @@ final class AuthService {
     /// Stored on this account's Firestore profile, not locally, so it's
     /// consistent across every device this account signs into.
     var notificationPrefs = NotificationPrefs()
+    /// At most one of these two is ever non-nil — see FirestoreService's
+    /// avatar functions.
+    var avatarPhoto: UIImage?
+    var avatarEmoji: String?
 
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var currentNonce: String?
@@ -30,9 +34,12 @@ final class AuthService {
             self?.isLoading = false
             guard let uid = user?.uid else {
                 self?.notificationPrefs = NotificationPrefs()
+                self?.avatarPhoto = nil
+                self?.avatarEmoji = nil
                 return
             }
             Task { await self?.loadNotificationPrefs(uid: uid) }
+            Task { await self?.loadAvatar(uid: uid) }
         }
     }
 
@@ -66,6 +73,64 @@ final class AuthService {
                 try await FirestoreService.updateNotificationPrefs(uid: uid, prefs: next)
             } catch {
                 print("Failed to update notification prefs:", error)
+            }
+        }
+    }
+
+    // MARK: - Avatar
+
+    /// Same "missing doc/field falls back to a safe default" reasoning as
+    /// loadNotificationPrefs above.
+    @MainActor
+    private func loadAvatar(uid: String) async {
+        do {
+            let avatar = try await FirestoreService.fetchAvatar(uid: uid)
+            avatarPhoto = avatar.photo
+            avatarEmoji = avatar.emoji
+        } catch {
+            print("Failed to load avatar:", error)
+        }
+    }
+
+    /// Patched into local state *before* the network call, same reasoning
+    /// as updateNotificationPrefs above — persists to this account's
+    /// Firestore profile, so it loads on every device/session this account
+    /// signs into, not just this one.
+    func setAvatarPhoto(_ image: UIImage) {
+        guard let uid = user?.uid else { return }
+        avatarPhoto = image
+        avatarEmoji = nil
+        Task {
+            do {
+                try await FirestoreService.setAvatarPhoto(uid: uid, image: image)
+            } catch {
+                print("Failed to set avatar photo:", error)
+            }
+        }
+    }
+
+    func setAvatarEmoji(_ emoji: String) {
+        guard let uid = user?.uid else { return }
+        avatarEmoji = emoji
+        avatarPhoto = nil
+        Task {
+            do {
+                try await FirestoreService.setAvatarEmoji(uid: uid, emoji: emoji)
+            } catch {
+                print("Failed to set avatar emoji:", error)
+            }
+        }
+    }
+
+    func clearAvatar() {
+        guard let uid = user?.uid else { return }
+        avatarPhoto = nil
+        avatarEmoji = nil
+        Task {
+            do {
+                try await FirestoreService.clearAvatar(uid: uid)
+            } catch {
+                print("Failed to clear avatar:", error)
             }
         }
     }
