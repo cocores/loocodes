@@ -27,6 +27,8 @@ rules_version = '2';
 //   - hasVotedUp: bool, required — a shared "last confirmation" flag, not
 //       per-user state (see `voters` below for the per-user signal)
 //   - flagCount: number, required, only moves via isFlagUpdate()/isFlagClearUpdate()
+//       — also reset to 0 by isVoteUpdate(), since a fresh "It Works" tap
+//       clears any prior flag report
 //   - lastConfirmedAt: number (epoch ms), required, only moves via isVoteUpdate()
 //   - suggestions: list of maps {id, text, submittedBy, createdAt}, required,
 //       starts empty, only grows one element at a time via isSuggestionUpdate()
@@ -145,17 +147,23 @@ service cloud.firestore {
       // toggle — the same uid tapping it again still increments upvoteCount
       // and refreshes lastConfirmedAt, so `voters` is only ever checked for
       // membership (never for "must not already contain uid").
+      // A fresh "It Works" confirmation also clears any prior flag report —
+      // same reasoning in reverse as isFlagUpdate() resetting hasVotedUp:
+      // the two signals shouldn't contradict each other, and a reconfirmed
+      // listing shouldn't still show as flagged.
       function isVoteUpdate() {
         let before = resource.data;
         let after = request.resource.data;
         let uid = request.auth.uid;
-        return after.diff(before).affectedKeys().hasOnly(['upvoteCount', 'hasVotedUp', 'lastConfirmedAt', 'voters'])
+        return after.diff(before).affectedKeys().hasOnly(['upvoteCount', 'hasVotedUp', 'lastConfirmedAt', 'voters', 'flagCount', 'flaggers'])
           && after.upvoteCount == before.upvoteCount + 1
           && after.hasVotedUp == true
           && after.lastConfirmedAt is number
           && after.voters is list
           && after.voters.size() <= 5000
-          && uid in after.voters;
+          && uid in after.voters
+          && after.flagCount == 0
+          && after.flaggers == [];
       }
 
       // Unlike voting, flagging is now capped at once per account — closes a

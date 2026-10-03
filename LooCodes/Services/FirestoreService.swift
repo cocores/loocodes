@@ -173,6 +173,11 @@ enum FirestoreService {
             // (arrayUnion dedupes) — it only drives "✓ Works!" styling
             // across this account's devices, never blocks the increment.
             "voters": FieldValue.arrayUnion([uid]),
+            // A fresh "It Works" clears any prior flag report — the two
+            // signals shouldn't contradict each other, so a reconfirmed
+            // listing stops showing as flagged.
+            "flagCount": 0,
+            "flaggers": [],
         ])
     }
 

@@ -83,6 +83,9 @@ final class BathroomStore {
             b.upvoteCount += 1
             b.lastConfirmedAt = Int64(Date().timeIntervalSince1970 * 1000)
             if !b.voters.contains(self.uid) { b.voters.append(self.uid) }
+            // A fresh "It Works" clears any prior flag report.
+            b.flagCount = 0
+            b.flaggers = []
         }
         Task {
             do {

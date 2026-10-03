@@ -205,6 +205,9 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
                 upvoteCount: b.upvoteCount + 1,
                 lastConfirmedAt: Date.now(),
                 voters: [...new Set([...(b.voters ?? []), uid])],
+                // A fresh "It Works" clears any prior flag report.
+                flagCount: 0,
+                flaggers: [],
               }
             : b,
         ),

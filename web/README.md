@@ -79,7 +79,9 @@ src/
   confirm them.
 - **Flagging** is a count (`flagCount`), not a takedown: a listing shows a
   "Reported Stale" badge once it crosses `FLAG_THRESHOLD` (3) but stays fully
-  visible and votable.
+  visible and votable. A fresh "It Works" confirmation clears any flags —
+  the two signals shouldn't contradict each other, so reconfirming a listing
+  resets `flagCount`/`flaggers` back to zero/empty.
 - **Suggested updates**: anyone can propose a correction from the detail
   sheet ("+ Suggest an update"). It's appended to `suggestions` and shown
   underneath the original listing — it never silently overwrites the

@@ -206,6 +206,11 @@ export async function voteUpBathroom(id: string, uid: string): Promise<void> {
     // dedupes) — it's only ever used to show "✓ Works!" across this
     // account's devices, never to block the increment above.
     voters: arrayUnion(uid),
+    // A fresh "It Works" clears any prior flag report — the two signals
+    // shouldn't contradict each other, so a reconfirmed listing stops
+    // showing as flagged.
+    flagCount: 0,
+    flaggers: [],
   });
 }
 
