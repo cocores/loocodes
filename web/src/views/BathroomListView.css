@@ -251,6 +251,11 @@
 
 .bathroom-card__vote {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   padding: 10px;
   border-radius: 10px;
   font-weight: 600;
@@ -258,6 +263,12 @@
   color: var(--blue);
   background: var(--blue-bg);
   text-align: center;
+}
+
+.bathroom-card__vote-time {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
 }
 
 .bathroom-card__vote:disabled {

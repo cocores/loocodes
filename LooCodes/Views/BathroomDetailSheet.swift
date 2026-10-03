@@ -156,14 +156,21 @@ struct BathroomDetailSheet: View {
                     Button {
                         store.voteUp(current.id)
                     } label: {
-                        Label(isConfirmedWorking ? "✓ Works!" : "It Works",
-                              systemImage: isConfirmedWorking ? "hand.thumbsup.fill" : "hand.thumbsup")
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(isConfirmedWorking ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        VStack(spacing: 2) {
+                            Label(isConfirmedWorking ? "✓ Works!" : "It Works",
+                                  systemImage: isConfirmedWorking ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(isConfirmedWorking ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                            if isConfirmedWorking {
+                                Text("Verified \(RelativeTime.format(current.lastConfirmedAt))")
+                                    .font(.caption)
+                                    .foregroundStyle(Color(hex: "1a1a1f").opacity(0.7))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
                     Button {

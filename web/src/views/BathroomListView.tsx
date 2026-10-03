@@ -318,7 +318,16 @@ function BathroomCard({
           className={`bathroom-card__vote ${isConfirmedWorking ? "bathroom-card__vote--active" : ""}`}
           onClick={() => voteUp(bathroom.id)}
         >
-          {isConfirmedWorking ? "✓ Works!" : "It Works"}
+          {isConfirmedWorking ? (
+            <>
+              <span>✓ Works!</span>
+              <span className="bathroom-card__vote-time">
+                Verified {formatRelativeTime(bathroom.lastConfirmedAt)}
+              </span>
+            </>
+          ) : (
+            "It Works"
+          )}
         </button>
         <button
           type="button"

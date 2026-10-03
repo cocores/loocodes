@@ -191,13 +191,20 @@ struct BathroomCard: View {
                 Button {
                     store.voteUp(current.id)
                 } label: {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "5b9ef5").opacity(0.3))
-                            .frame(width: 8, height: 8)
-                        Text(isConfirmedWorking ? "✓ Works!" : "It Works")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(isConfirmedWorking ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                    VStack(spacing: 1) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "5b9ef5").opacity(0.3))
+                                .frame(width: 8, height: 8)
+                            Text(isConfirmedWorking ? "✓ Works!" : "It Works")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(isConfirmedWorking ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                        }
+                        if isConfirmedWorking {
+                            Text("Verified \(RelativeTime.format(current.lastConfirmedAt))")
+                                .font(.caption2)
+                                .foregroundStyle(Color(hex: "1a1a1f").opacity(0.7))
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)

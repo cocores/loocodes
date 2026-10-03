@@ -146,7 +146,16 @@ export function BathroomDetailSheet({
               className={`detail__vote ${isConfirmedWorking ? "detail__vote--active" : ""}`}
               onClick={() => voteUp(current.id)}
             >
-              {isConfirmedWorking ? "✓ Works!" : "👍 It Works"}
+              {isConfirmedWorking ? (
+                <>
+                  <span>✓ Works!</span>
+                  <span className="detail__vote-time">
+                    Verified {formatRelativeTime(current.lastConfirmedAt)}
+                  </span>
+                </>
+              ) : (
+                "👍 It Works"
+              )}
             </button>
             <button
               type="button"
