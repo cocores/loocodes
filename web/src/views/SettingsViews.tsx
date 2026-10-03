@@ -1,7 +1,42 @@
 import { useState, type ReactNode } from "react";
 import { useAuth } from "../store/AuthContext";
+import { useBathroomStore } from "../store/BathroomStoreContext";
 import { Switch } from "../components/Switch";
 import "./SettingsViews.css";
+
+// Curated open-data coverage only — a static snapshot of the seed datasets
+// in store/seed.ts, not a live query. User-submitted codes exist well
+// outside this list (most have no real city attached, just "Shared
+// location"), so this is "where we have a real base layer," not "every
+// place LooCodes works."
+const CITIES_AVAILABLE: { region: string; cities: { name: string; count: number }[] }[] = [
+  {
+    region: "North America",
+    cities: [
+      { name: "New York City, NY", count: 50 },
+      { name: "Washington, D.C.", count: 22 },
+      { name: "Kansas City, KS & MO", count: 31 },
+      { name: "St. Louis, MO", count: 16 },
+      { name: "Denver, CO", count: 20 },
+      { name: "Los Angeles, CA", count: 26 },
+      { name: "San Francisco, CA", count: 16 },
+      { name: "Miami, FL", count: 20 },
+      { name: "Mexico City, Mexico", count: 12 },
+    ],
+  },
+  {
+    region: "Europe",
+    cities: [
+      { name: "London, UK", count: 18 },
+      { name: "Paris, France", count: 20 },
+      { name: "Berlin, Germany", count: 24 },
+      { name: "Rome, Italy", count: 11 },
+      { name: "Barcelona, Spain", count: 12 },
+      { name: "Lisbon, Portugal", count: 5 },
+      { name: "Athens, Greece", count: 4 },
+    ],
+  },
+];
 
 interface SubScreenProps {
   onBack: () => void;
@@ -176,14 +211,53 @@ export function PrivacySettingsView({ onBack }: SubScreenProps) {
 }
 
 export function AboutView({ onBack }: SubScreenProps) {
+  const { bathrooms } = useBathroomStore();
+  const totalCities = CITIES_AVAILABLE.reduce((sum, r) => sum + r.cities.length, 0);
+
   return (
     <div className="screen sub-screen">
       <ScreenHeader title="About LooCodes" onBack={onBack} />
       <div className="sub-screen__body">
+        <SettingsSection title="Why LooCodes">
+          <div className="about-story">
+            <p>
+              Most bathrooms worth knowing about aren't actually open to the public — they're
+              locked behind a code only employees, regulars, or paying customers ever learn. If
+              you don't already have it, you're stuck even standing right outside the door.
+            </p>
+            <p>
+              LooCodes started as a simple idea: people who already know a code can share it with
+              people who need one right now. It's grown into a crowdsourced map of bathroom
+              access — shared codes, free public restrooms, and everything in between — kept
+              accurate by the same community that uses it.
+            </p>
+            <p>
+              Every listing can be reconfirmed with a tap or flagged as stale by anyone nearby, so
+              the map keeps working as codes change, places close, and new ones open.
+            </p>
+            <p>
+              <strong>Our objective:</strong> make finding a working bathroom as easy as checking
+              a map, anywhere in the world, for free — no tracking down an employee, no buying
+              something you didn't want just to get a door code.
+            </p>
+          </div>
+        </SettingsSection>
+
         <SettingsSection title="App Info">
           <InfoRow label="Version" value="1.0.0 (1)" />
-          <InfoRow label="Bathrooms indexed" value="12,847" />
-          <InfoRow label="Cities covered" value="284" />
+          <InfoRow label="Bathrooms indexed" value={bathrooms.length.toLocaleString()} />
+          <InfoRow label="Cities with curated coverage" value={String(totalCities)} />
+        </SettingsSection>
+
+        <SettingsSection title="Cities Available">
+          {CITIES_AVAILABLE.map((region) => (
+            <div key={region.region} className="about-region">
+              <div className="about-region__title">{region.region}</div>
+              {region.cities.map((city) => (
+                <InfoRow key={city.name} label={city.name} value={`${city.count} locations`} />
+              ))}
+            </div>
+          ))}
         </SettingsSection>
 
         <SettingsSection title="Legal">
@@ -194,7 +268,7 @@ export function AboutView({ onBack }: SubScreenProps) {
 
         <SettingsSection title="Support">
           <LinkRow icon="✉️" label="Contact Us" href="mailto:hello@loocodes.app" />
-          <LinkRow icon="⭐" label="Rate on App Store ⭐" href="https://apps.apple.com" />
+          <LinkRow icon="⭐" label="Rate on App Store" href="https://apps.apple.com" />
         </SettingsSection>
       </div>
     </div>

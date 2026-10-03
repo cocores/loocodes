@@ -208,11 +208,70 @@ struct PrivacySettingsView: View {
 struct AboutView: View {
     @Environment(BathroomStore.self) var store
 
+    // Curated open-data coverage only — a static snapshot of the seed
+    // datasets in web/src/store/seed.ts, not a live query. User-submitted
+    // codes exist well outside this list (most have no real city attached,
+    // just "Shared location"), so this is "where we have a real base
+    // layer," not "every place LooCodes works."
+    private struct CityCount: Identifiable {
+        let name: String
+        let count: Int
+        var id: String { name }
+    }
+
+    private let northAmerica: [CityCount] = [
+        CityCount(name: "New York City, NY", count: 50),
+        CityCount(name: "Washington, D.C.", count: 22),
+        CityCount(name: "Kansas City, KS & MO", count: 31),
+        CityCount(name: "St. Louis, MO", count: 16),
+        CityCount(name: "Denver, CO", count: 20),
+        CityCount(name: "Los Angeles, CA", count: 26),
+        CityCount(name: "San Francisco, CA", count: 16),
+        CityCount(name: "Miami, FL", count: 20),
+        CityCount(name: "Mexico City, Mexico", count: 12),
+    ]
+    private let europe: [CityCount] = [
+        CityCount(name: "London, UK", count: 18),
+        CityCount(name: "Paris, France", count: 20),
+        CityCount(name: "Berlin, Germany", count: 24),
+        CityCount(name: "Rome, Italy", count: 11),
+        CityCount(name: "Barcelona, Spain", count: 12),
+        CityCount(name: "Lisbon, Portugal", count: 5),
+        CityCount(name: "Athens, Greece", count: 4),
+    ]
+    private var totalCities: Int { northAmerica.count + europe.count }
+
     var body: some View {
         List {
+            Section("Why LooCodes") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Most bathrooms worth knowing about aren't actually open to the public — they're locked behind a code only employees, regulars, or paying customers ever learn. If you don't already have it, you're stuck even standing right outside the door.")
+                    Text("LooCodes started as a simple idea: people who already know a code can share it with people who need one right now. It's grown into a crowdsourced map of bathroom access — shared codes, free public restrooms, and everything in between — kept accurate by the same community that uses it.")
+                    Text("Every listing can be reconfirmed with a tap or flagged as stale by anyone nearby, so the map keeps working as codes change, places close, and new ones open.")
+                    Text("Our objective: ").bold()
+                        + Text("make finding a working bathroom as easy as checking a map, anywhere in the world, for free — no tracking down an employee, no buying something you didn't want just to get a door code.")
+                }
+                .font(.subheadline)
+                .foregroundStyle(Color(hex: "aaaacc"))
+                .padding(.vertical, 6)
+            }
+
             Section("App Info") {
                 LabeledContent("Version", value: "1.0.0 (1)")
                 LabeledContent("Bathrooms indexed", value: "\(store.bathrooms.count)")
+                LabeledContent("Cities with curated coverage", value: "\(totalCities)")
+            }
+
+            Section("Cities Available — North America") {
+                ForEach(northAmerica) { city in
+                    LabeledContent(city.name, value: "\(city.count) locations")
+                }
+            }
+
+            Section("Cities Available — Europe") {
+                ForEach(europe) { city in
+                    LabeledContent(city.name, value: "\(city.count) locations")
+                }
             }
 
             Section("Legal") {
