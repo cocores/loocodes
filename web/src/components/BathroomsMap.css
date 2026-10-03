@@ -1,5 +1,11 @@
 .bathrooms-map {
   position: relative;
+  /* Without its own z-index, this element never establishes a stacking
+     context, so Leaflet's internal panes/controls (z-index in the
+     hundreds) aren't contained within it — they paint straight over
+     higher page-level elements like the detail sheet's backdrop instead
+     of staying beneath them. */
+  z-index: 0;
   margin: 4px 20px 24px;
   border-radius: 14px;
   overflow: hidden;
