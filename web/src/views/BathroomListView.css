@@ -244,6 +244,24 @@
   font-style: normal;
 }
 
+/* Collapses the flagged note's height smoothly (grid-template-rows
+   animating to 0fr) instead of the card just snapping to a shorter height
+   the instant the flag clears — paired with useCollapse(). */
+.bathroom-card__flagwrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+
+.bathroom-card__flagwrap.is-open {
+  grid-template-rows: 1fr;
+}
+
+.bathroom-card__flagwrap > .bathroom-card__note {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .bathroom-card__actions {
   display: flex;
   gap: 10px;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation } from "../hooks/useLocation";
+import { useCollapse } from "../hooks/useCollapse";
 import { isReportedStale, type Bathroom } from "../types";
 import {
   ADABadge,
@@ -40,6 +41,11 @@ export function BathroomDetailSheet({
   const isConfirmedWorking = current.hasVotedUp;
   const hasBeenFlagged = current.flagCount > 0;
   const alreadyFlaggedByMe = flaggedIds.has(current.id);
+  // Keeps the flagged note mounted briefly after it clears so it can
+  // collapse away smoothly — otherwise the sheet would just snap to its
+  // shorter height the instant "It Works" clears the flag.
+  const showFlagNote = hasBeenFlagged && !isReportedStale(current);
+  const flagNoteMounted = useCollapse(showFlagNote);
 
   const copyCode = async () => {
     try {
@@ -117,13 +123,15 @@ export function BathroomDetailSheet({
             </div>
           )}
 
-          {hasBeenFlagged && !isReportedStale(current) && (
-            <div className="detail__note detail__note--flagged">
-              <span>🚩</span>
-              <div>
-                <div className="detail__note-label">Flagged</div>
-                <div className="detail__note-text">
-                  Someone reported this may be incorrect or no longer available.
+          {flagNoteMounted && (
+            <div className={`detail__flagwrap ${showFlagNote ? "is-open" : ""}`}>
+              <div className="detail__note detail__note--flagged">
+                <span>🚩</span>
+                <div>
+                  <div className="detail__note-label">Flagged</div>
+                  <div className="detail__note-text">
+                    Someone reported this may be incorrect or no longer available.
+                  </div>
                 </div>
               </div>
             </div>
