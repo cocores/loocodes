@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation, type Coordinate } from "../hooks/useLocation";
-import { useCollapse } from "../hooks/useCollapse";
+import { useStickyVisible } from "../hooks/useStickyVisible";
 import { BATHROOM_TYPES, isReportedStale, type Bathroom, type BathroomTypeId } from "../types";
 import { FilterChip } from "../components/FilterChip";
 import {
@@ -258,11 +258,11 @@ function BathroomCard({
   const isConfirmedWorking = bathroom.hasVotedUp;
   const hasBeenFlagged = bathroom.flagCount > 0;
   const alreadyFlaggedByMe = flaggedIds.has(bathroom.id);
-  // Keeps the flagged note mounted briefly after it clears so it can
-  // collapse away smoothly — otherwise the card would just snap to its
-  // shorter height the instant "It Works" clears the flag.
+  // Once this card has shown the flagged note, its slot stays reserved for
+  // good (for this card instance) — clearing the flag only fades the
+  // message out, it never shrinks the card back down.
   const showFlagNote = hasBeenFlagged && !isReportedStale(bathroom);
-  const flagNoteMounted = useCollapse(showFlagNote);
+  const flagSlotReserved = useStickyVisible(showFlagNote);
 
   return (
     <div className="bathroom-card" onClick={onOpen} role="button" tabIndex={0}>
@@ -311,7 +311,7 @@ function BathroomCard({
         </div>
       )}
 
-      {flagNoteMounted && (
+      {flagSlotReserved && (
         <div className={`bathroom-card__flagwrap ${showFlagNote ? "is-open" : ""}`}>
           <div className="bathroom-card__note bathroom-card__note--flagged">
             <span>🚩</span>

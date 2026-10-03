@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { useLocation } from "../hooks/useLocation";
-import { useCollapse } from "../hooks/useCollapse";
+import { useStickyVisible } from "../hooks/useStickyVisible";
 import { isReportedStale, type Bathroom } from "../types";
 import {
   ADABadge,
@@ -41,11 +41,11 @@ export function BathroomDetailSheet({
   const isConfirmedWorking = current.hasVotedUp;
   const hasBeenFlagged = current.flagCount > 0;
   const alreadyFlaggedByMe = flaggedIds.has(current.id);
-  // Keeps the flagged note mounted briefly after it clears so it can
-  // collapse away smoothly — otherwise the sheet would just snap to its
-  // shorter height the instant "It Works" clears the flag.
+  // Once this sheet has shown the flagged note, its slot stays reserved for
+  // good (for this sheet instance) — clearing the flag only fades the
+  // message out, it never shrinks the sheet back down.
   const showFlagNote = hasBeenFlagged && !isReportedStale(current);
-  const flagNoteMounted = useCollapse(showFlagNote);
+  const flagSlotReserved = useStickyVisible(showFlagNote);
 
   const copyCode = async () => {
     try {
@@ -123,7 +123,7 @@ export function BathroomDetailSheet({
             </div>
           )}
 
-          {flagNoteMounted && (
+          {flagSlotReserved && (
             <div className={`detail__flagwrap ${showFlagNote ? "is-open" : ""}`}>
               <div className="detail__note detail__note--flagged">
                 <span>🚩</span>
