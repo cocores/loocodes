@@ -21,6 +21,7 @@ import {
   LISBON_TOILETS,
   LONDON_TOILETS,
   LOS_ANGELES_TOILETS,
+  MEXICO_CITY_TOILETS,
   MIAMI_TOILETS,
   NYC_PARKS_TOILETS,
   PARIS_TOILETS,
@@ -97,10 +98,11 @@ let seeded = false;
  * restrooms, DC's rec centers and NPS Mall restrooms, St. Louis's Forest
  * Park and rec centers, Barcelona's self-cleaning WC cabins and Park Güell
  * restrooms, Lisbon's historic WC kiosks and central gardens, Athens's
- * National Garden/metro/Acropolis restrooms) into ANY deployment that's
- * missing them (fresh or already populated with real user data), keyed by
- * their fixed ids so it's idempotent. All writes share one batch and one
- * up-front read. */
+ * National Garden/metro/Acropolis restrooms, Mexico City's smart public
+ * restroom kiosks and Metrobús station restrooms) into ANY deployment
+ * that's missing them (fresh or already populated with real user data),
+ * keyed by their fixed ids so it's idempotent. All writes share one batch
+ * and one up-front read. */
 async function ensureSeeded(): Promise<void> {
   if (seeded) return;
   const db = getDb();
@@ -145,6 +147,7 @@ async function ensureSeeded(): Promise<void> {
     ...BARCELONA_TOILETS,
     ...LISBON_TOILETS,
     ...ATHENS_TOILETS,
+    ...MEXICO_CITY_TOILETS,
   ]) {
     if (!existingIds.has(toilet.id)) {
       batch.set(doc(db, COLLECTION, toilet.id), withVoteFields(toilet));
