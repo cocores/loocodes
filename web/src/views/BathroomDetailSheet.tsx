@@ -81,7 +81,7 @@ export function BathroomDetailSheet({
           </div>
 
           <div className="detail__code-box">
-            <div className="detail__code-label">ACCESS CODE</div>
+            <div className="detail__code-label">🔑 ACCESS CODE</div>
             <div className="detail__code-row">
               <span className="detail__code">{current.code || "FREE"}</span>
               <button

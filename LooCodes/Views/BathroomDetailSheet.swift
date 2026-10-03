@@ -48,10 +48,13 @@ struct BathroomDetailSheet: View {
 
                 // Code box
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("ACCESS CODE")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color(hex: "8888aa"))
-                        .tracking(1.5)
+                    HStack(spacing: 4) {
+                        Image(systemName: "key.fill")
+                        Text("ACCESS CODE")
+                            .tracking(1.5)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(hex: "8888aa"))
 
                     HStack {
                         Text(current.code.isEmpty ? "FREE" : current.code)
