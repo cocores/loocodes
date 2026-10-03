@@ -29,6 +29,18 @@ struct ProfileView: View {
     private var totalUpvotes:  Int        { myCodes.reduce(0) { $0 + $1.upvoteCount } }
     private var verifiedCount: Int        { myCodes.filter { $0.isVerified }.count }
 
+    // What this account has submitted — a "code" is a listing someone needs
+    // an actual code for; everything else (free public restrooms, etc.) is
+    // just a shared location.
+    private var codesAddedCount:     Int { myCodes.filter { !$0.code.trimmingCharacters(in: .whitespaces).isEmpty }.count }
+    private var locationsAddedCount: Int { myCodes.count - codesAddedCount }
+    // What this account has *done* elsewhere, as opposed to received on its
+    // own submissions above — derived the same way the shared "✓ Works!"/
+    // flagged display is (each bathroom's own voters/flaggers arrays), not
+    // tracked separately, so it stays consistent across devices.
+    private var confirmedByMeCount: Int { store.votedUpIds.count }
+    private var flaggedByMeCount:   Int { store.flaggedIds.count }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -52,12 +64,21 @@ struct ProfileView: View {
                         .foregroundStyle(.white)
 
                     // Stats
-                    HStack(spacing: 0) {
-                        StatBubble(value: myCodes.count,  label: "Shared")
-                        Divider().frame(height: 36).background(Color(hex: "3a3a4a"))
-                        StatBubble(value: totalUpvotes,   label: "Upvotes")
-                        Divider().frame(height: 36).background(Color(hex: "3a3a4a"))
-                        StatBubble(value: verifiedCount,  label: "Verified")
+                    VStack(spacing: 10) {
+                        HStack(spacing: 0) {
+                            StatBubble(value: codesAddedCount,     label: "Codes Added")
+                            Divider().frame(height: 36).background(Color(hex: "3a3a4a"))
+                            StatBubble(value: locationsAddedCount, label: "Locations Added")
+                            Divider().frame(height: 36).background(Color(hex: "3a3a4a"))
+                            StatBubble(value: verifiedCount,       label: "Verified")
+                        }
+                        HStack(spacing: 0) {
+                            StatBubble(value: totalUpvotes,        label: "Upvotes")
+                            Divider().frame(height: 36).background(Color(hex: "3a3a4a"))
+                            StatBubble(value: confirmedByMeCount,  label: "Marked Working")
+                            Divider().frame(height: 36).background(Color(hex: "3a3a4a"))
+                            StatBubble(value: flaggedByMeCount,    label: "Flagged")
+                        }
                     }
                     .padding(.vertical, 16)
                     .background(Color(hex: "252530"))

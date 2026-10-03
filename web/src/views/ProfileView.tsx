@@ -21,7 +21,7 @@ const TRUSTED_CONTRIBUTOR_THRESHOLD = 10;
 type Screen = "profile" | "notifications" | "privacy" | "about" | "flagged";
 
 export function ProfileView() {
-  const { myCodes, bathrooms } = useBathroomStore();
+  const { myCodes, bathrooms, votedUpIds, flaggedIds } = useBathroomStore();
   const { user, signOut } = useAuth();
   const [screen, setScreen] = useState<Screen>("profile");
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -42,6 +42,18 @@ export function ProfileView() {
   const isTrustedContributor =
     myCodes.length > 0 && totalUpvotes - totalFlags * 2 >= TRUSTED_CONTRIBUTOR_THRESHOLD;
   const flaggedCount = bathrooms.filter((b) => b.flagCount > 0).length;
+
+  // What this account has submitted — a "code" is a listing someone needs an
+  // actual code for; everything else (free public restrooms, etc.) is just a
+  // shared location.
+  const codesAddedCount = myCodes.filter((b) => b.code.trim() !== "").length;
+  const locationsAddedCount = myCodes.length - codesAddedCount;
+  // What this account has *done* elsewhere, as opposed to received on its
+  // own submissions above — derived the same way the shared "✓ Works!"/
+  // flagged display is (each bathroom's own voters/flaggers arrays), not
+  // tracked separately, so it stays consistent across devices.
+  const confirmedByMeCount = votedUpIds.size;
+  const flaggedByMeCount = flaggedIds.size;
 
   const onFileChosen = (file: File | undefined) => {
     if (!file) return;
@@ -92,11 +104,19 @@ export function ProfileView() {
         )}
 
         <div className="profile-view__stats">
-          <StatBubble value={myCodes.length} label="Shared" />
+          <StatBubble value={codesAddedCount} label="Codes Added" />
           <div className="profile-view__divider" />
-          <StatBubble value={totalUpvotes} label="Upvotes" />
+          <StatBubble value={locationsAddedCount} label="Locations Added" />
           <div className="profile-view__divider" />
           <StatBubble value={verifiedCount} label="Verified" />
+        </div>
+
+        <div className="profile-view__stats">
+          <StatBubble value={totalUpvotes} label="Upvotes" />
+          <div className="profile-view__divider" />
+          <StatBubble value={confirmedByMeCount} label="Marked Working" />
+          <div className="profile-view__divider" />
+          <StatBubble value={flaggedByMeCount} label="Flagged" />
         </div>
 
         <section className="profile-view__section">
