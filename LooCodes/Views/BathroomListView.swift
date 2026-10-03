@@ -102,8 +102,14 @@ struct BathroomCard: View {
     private var current: Bathroom {
         store.bathrooms.first { $0.id == bathroom.id } ?? bathroom
     }
-    private var alreadyVotedUp: Bool { store.votedUpIds.contains(current.id) }
-    private var alreadyFlagged: Bool { store.flaggedIds.contains(current.id) }
+    // Shared, not per-account: once anyone confirms "It Works," it reads as
+    // confirmed for every visitor, not just the account that tapped it — same
+    // for a flag. Only whether *this* account can still tap Flag (to avoid a
+    // wasted write the rules would reject anyway, since it's one flag per
+    // account) stays per-account.
+    private var isConfirmedWorking: Bool { current.hasVotedUp }
+    private var hasBeenFlagged: Bool { current.flagCount > 0 }
+    private var alreadyFlaggedByMe: Bool { store.flaggedIds.contains(current.id) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -162,38 +168,53 @@ struct BathroomCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
+            if hasBeenFlagged {
+                HStack(alignment: .top, spacing: 6) {
+                    Text("🚩").font(.caption)
+                    Text("Flagged — someone reported this may be incorrect or no longer available.")
+                        .font(.caption)
+                        .foregroundStyle(Color(hex: "ff9500"))
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Color(hex: "2a1500"))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
             // "It Works" always stays clickable (each tap is a fresh
             // reconfirmation) and is independent of flagging — flagging only
-            // disables itself, once per device, and resets this device's own
-            // "It Works" check rather than blocking the other button.
+            // disables itself, once per account, and resets the shared
+            // "It Works" check rather than blocking the other button. Both
+            // the checkmark and the flagged note are shared state (read off
+            // the document itself), not per-account, so every viewer sees
+            // the same thing regardless of who's signed in.
             HStack(spacing: 10) {
                 Button {
                     store.voteUp(current.id)
                 } label: {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(alreadyVotedUp ? Color(hex: "5b9ef5") : Color(hex: "5b9ef5").opacity(0.3))
+                            .fill(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "5b9ef5").opacity(0.3))
                             .frame(width: 8, height: 8)
-                        Text(alreadyVotedUp ? "✓ Works!" : "It Works")
+                        Text(isConfirmedWorking ? "✓ Works!" : "It Works")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(alreadyVotedUp ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                            .foregroundStyle(isConfirmedWorking ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(alreadyVotedUp ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
+                    .background(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
 
                 Button {
                     store.flag(current.id)
                 } label: {
-                    Image(systemName: alreadyFlagged ? "flag.fill" : "flag")
-                        .foregroundStyle(alreadyFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
+                    Image(systemName: hasBeenFlagged ? "flag.fill" : "flag")
+                        .foregroundStyle(hasBeenFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
                         .frame(width: 44, height: 44)
-                        .background(alreadyFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
+                        .background(hasBeenFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .disabled(alreadyFlagged)
+                .disabled(alreadyFlaggedByMe)
             }
         }
         .padding(14)

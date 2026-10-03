@@ -13,8 +13,14 @@ struct BathroomDetailSheet: View {
     private var current: Bathroom {
         store.bathrooms.first { $0.id == bathroom.id } ?? bathroom
     }
-    private var alreadyVotedUp: Bool { store.votedUpIds.contains(current.id) }
-    private var alreadyFlagged: Bool { store.flaggedIds.contains(current.id) }
+    // Shared, not per-account: once anyone confirms "It Works," it reads as
+    // confirmed for every visitor, not just the account that tapped it — same
+    // for a flag. Only whether *this* account can still tap Flag (to avoid a
+    // wasted write the rules would reject anyway, since it's one flag per
+    // account) stays per-account.
+    private var isConfirmedWorking: Bool { current.hasVotedUp }
+    private var hasBeenFlagged: Bool { current.flagCount > 0 }
+    private var alreadyFlaggedByMe: Bool { store.flaggedIds.contains(current.id) }
 
     var body: some View {
         ScrollView {
@@ -106,6 +112,27 @@ struct BathroomDetailSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
 
+                // Flagged note — shared state (anyone's flag shows for
+                // everyone), separate from alreadyFlaggedByMe which only
+                // governs whether this account can still tap Flag.
+                if hasBeenFlagged {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("🚩")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Flagged")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color(hex: "ff9500"))
+                            Text("Someone reported this may be incorrect or no longer available.")
+                                .font(.subheadline)
+                                .foregroundStyle(Color(hex: "ff9500"))
+                        }
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(hex: "2a1500"))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
                 // Stars
                 HStack(spacing: 6) {
                     StarRating(rating: current.rating)
@@ -120,38 +147,41 @@ struct BathroomDetailSheet: View {
 
                 // "It Works" always stays clickable (each tap is a fresh
                 // reconfirmation) and is independent of flagging — flagging
-                // only disables itself, once per device, and resets this
-                // device's own "It Works" check rather than blocking it.
+                // only disables itself, once per account, and resets the
+                // shared "It Works" check rather than blocking it. Both the
+                // checkmark and the flagged note are shared state (read off
+                // the document itself), not per-account, so every viewer
+                // sees the same thing regardless of who's signed in.
                 HStack(spacing: 12) {
                     Button {
                         store.voteUp(current.id)
                     } label: {
-                        Label(alreadyVotedUp ? "✓ Works!" : "It Works",
-                              systemImage: alreadyVotedUp ? "hand.thumbsup.fill" : "hand.thumbsup")
+                        Label(isConfirmedWorking ? "✓ Works!" : "It Works",
+                              systemImage: isConfirmedWorking ? "hand.thumbsup.fill" : "hand.thumbsup")
                             .font(.headline.weight(.semibold))
-                            .foregroundStyle(alreadyVotedUp ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
+                            .foregroundStyle(isConfirmedWorking ? Color(hex: "1a1a1f") : Color(hex: "5b9ef5"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(alreadyVotedUp ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
+                            .background(isConfirmedWorking ? Color(hex: "5b9ef5") : Color(hex: "0a1a40"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
                     Button {
                         store.flag(current.id)
                     } label: {
-                        Label(alreadyFlagged ? "Flagged" : "Flag Stale",
-                              systemImage: alreadyFlagged ? "flag.fill" : "flag")
+                        Label(hasBeenFlagged ? "Flagged" : "Flag Stale",
+                              systemImage: hasBeenFlagged ? "flag.fill" : "flag")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(alreadyFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
+                            .foregroundStyle(hasBeenFlagged ? Color(hex: "ff9500") : Color(hex: "8888aa"))
                             .padding(.horizontal, 16).padding(.vertical, 14)
-                            .background(alreadyFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
+                            .background(hasBeenFlagged ? Color(hex: "2a1500") : Color(hex: "252530"))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(Color(hex: "3a3a4a"), lineWidth: 0.5)
                             )
                     }
-                    .disabled(alreadyFlagged)
+                    .disabled(alreadyFlaggedByMe)
                 }
 
                 // Opens Apple Maps with walking directions already started,

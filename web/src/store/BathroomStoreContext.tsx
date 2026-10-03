@@ -65,12 +65,14 @@ interface BathroomStoreValue {
    * this app; the security rules narrowly scope what this can touch. */
   clearFlag: (id: string) => Promise<void>;
   suggest: (id: string, text: string) => Promise<void>;
-  /** Which bathrooms the signed-in account has voted up / flagged — derived
-   * from each bathroom document's own `voters`/`flaggers` arrays rather than
-   * browser-local storage, so it's consistent across every device this
-   * account signs into. Recomputed from `bathrooms` on every change, with an
-   * optimistic patch applied immediately in voteUp/flag below so the button
-   * updates before the network write resolves. */
+  /** Which bathrooms *this account* has personally voted up / flagged —
+   * derived from each bathroom document's own `voters`/`flaggers` arrays
+   * rather than browser-local storage, so it's consistent across every
+   * device this account signs into. Not what drives the "✓ Works!"/flagged
+   * display in the UI (that's shared state — `hasVotedUp`/`flagCount` on the
+   * bathroom itself, true for every viewer once anyone has confirmed or
+   * flagged it) — `flaggedIds` here only gates whether *this* account can
+   * still tap Flag, since the rules allow one flag per account. */
   votedUpIds: ReadonlySet<string>;
   flaggedIds: ReadonlySet<string>;
 }
@@ -187,8 +189,7 @@ export function BathroomStoreProvider({ children }: { children: ReactNode }) {
       // "It Works" is a reconfirmation, not a one-time toggle — it should
       // always be clickable, even after this account has already voted, so
       // repeat visits keep lastConfirmedAt (and the trust score it feeds)
-      // fresh. votedUpIds only drives the "✓ Works!" styling, it's never
-      // used to block the click.
+      // fresh. Nothing here ever blocks the click.
       //
       // Patched into local state *before* the network call, not after:
       // under a slow or flaky connection the write's Promise can take a

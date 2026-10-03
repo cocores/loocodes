@@ -248,9 +248,15 @@ function BathroomCard({
   distance: string | null;
   onOpen: () => void;
 }) {
-  const { voteUp, flag, votedUpIds, flaggedIds } = useBathroomStore();
-  const alreadyFlagged = flaggedIds.has(bathroom.id);
-  const alreadyVotedUp = votedUpIds.has(bathroom.id);
+  const { voteUp, flag, flaggedIds } = useBathroomStore();
+  // Shared, not per-account: once anyone confirms "It Works," it should read
+  // as confirmed for every visitor, not just the account that tapped it —
+  // same for a flag. Only whether *this* account can still tap Flag (to
+  // avoid a wasted write the rules would reject anyway, since it's one flag
+  // per account) stays per-account.
+  const isConfirmedWorking = bathroom.hasVotedUp;
+  const hasBeenFlagged = bathroom.flagCount > 0;
+  const alreadyFlaggedByMe = flaggedIds.has(bathroom.id);
 
   return (
     <div className="bathroom-card" onClick={onOpen} role="button" tabIndex={0}>
@@ -299,18 +305,25 @@ function BathroomCard({
         </div>
       )}
 
+      {hasBeenFlagged && !isReportedStale(bathroom) && (
+        <div className="bathroom-card__note bathroom-card__note--flagged">
+          <span>🚩</span>
+          <span>Flagged — someone reported this may be incorrect or no longer available.</span>
+        </div>
+      )}
+
       <div className="bathroom-card__actions" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
-          className={`bathroom-card__vote ${alreadyVotedUp ? "bathroom-card__vote--active" : ""}`}
+          className={`bathroom-card__vote ${isConfirmedWorking ? "bathroom-card__vote--active" : ""}`}
           onClick={() => voteUp(bathroom.id)}
         >
-          {alreadyVotedUp ? "✓ Works!" : "It Works"}
+          {isConfirmedWorking ? "✓ Works!" : "It Works"}
         </button>
         <button
           type="button"
-          className={`bathroom-card__flag ${alreadyFlagged ? "bathroom-card__flag--active" : ""}`}
-          disabled={alreadyFlagged}
+          className={`bathroom-card__flag ${hasBeenFlagged ? "bathroom-card__flag--active" : ""}`}
+          disabled={alreadyFlaggedByMe}
           onClick={() => flag(bathroom.id)}
           aria-label="Flag stale"
         >

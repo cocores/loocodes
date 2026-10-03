@@ -23,7 +23,7 @@ export function BathroomDetailSheet({
   bathroom: Bathroom;
   onClose: () => void;
 }) {
-  const { bathrooms, voteUp, flag, suggest, votedUpIds, flaggedIds } = useBathroomStore();
+  const { bathrooms, voteUp, flag, suggest, flaggedIds } = useBathroomStore();
   const { location, distanceTo } = useLocation();
   const [copied, setCopied] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -32,8 +32,14 @@ export function BathroomDetailSheet({
   const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
 
   const current = bathrooms.find((b) => b.id === bathroom.id) ?? bathroom;
-  const alreadyFlagged = flaggedIds.has(current.id);
-  const alreadyVotedUp = votedUpIds.has(current.id);
+  // Shared, not per-account: once anyone confirms "It Works," it reads as
+  // confirmed for every visitor, not just the account that tapped it — same
+  // for a flag. Only whether *this* account can still tap Flag (to avoid a
+  // wasted write the rules would reject anyway, since it's one flag per
+  // account) stays per-account.
+  const isConfirmedWorking = current.hasVotedUp;
+  const hasBeenFlagged = current.flagCount > 0;
+  const alreadyFlaggedByMe = flaggedIds.has(current.id);
 
   const copyCode = async () => {
     try {
@@ -111,6 +117,18 @@ export function BathroomDetailSheet({
             </div>
           )}
 
+          {hasBeenFlagged && !isReportedStale(current) && (
+            <div className="detail__note detail__note--flagged">
+              <span>🚩</span>
+              <div>
+                <div className="detail__note-label">Flagged</div>
+                <div className="detail__note-text">
+                  Someone reported this may be incorrect or no longer available.
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="detail__stars">
             <StarRating rating={current.rating} />
             <span className="detail__stars-value">{current.rating.toFixed(1)}</span>
@@ -125,18 +143,18 @@ export function BathroomDetailSheet({
           <div className="detail__actions">
             <button
               type="button"
-              className={`detail__vote ${alreadyVotedUp ? "detail__vote--active" : ""}`}
+              className={`detail__vote ${isConfirmedWorking ? "detail__vote--active" : ""}`}
               onClick={() => voteUp(current.id)}
             >
-              {alreadyVotedUp ? "✓ Works!" : "👍 It Works"}
+              {isConfirmedWorking ? "✓ Works!" : "👍 It Works"}
             </button>
             <button
               type="button"
-              className={`detail__flag ${alreadyFlagged ? "detail__flag--active" : ""}`}
-              disabled={alreadyFlagged}
+              className={`detail__flag ${hasBeenFlagged ? "detail__flag--active" : ""}`}
+              disabled={alreadyFlaggedByMe}
               onClick={() => flag(current.id)}
             >
-              {alreadyFlagged ? "🚩 Flagged" : "🚩 Flag Stale"}
+              {hasBeenFlagged ? "🚩 Flagged" : "🚩 Flag Stale"}
             </button>
           </div>
 

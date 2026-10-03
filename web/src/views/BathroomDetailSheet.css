@@ -179,6 +179,16 @@
   margin-top: 2px;
 }
 
+.detail__note--flagged {
+  background: var(--flag-bg);
+}
+
+.detail__note--flagged .detail__note-label,
+.detail__note--flagged .detail__note-text {
+  color: var(--flag);
+  font-style: normal;
+}
+
 .detail__stars {
   display: flex;
   align-items: center;
