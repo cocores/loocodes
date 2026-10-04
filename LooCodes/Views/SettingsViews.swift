@@ -275,10 +275,10 @@ struct AboutView: View {
             }
 
             Section("Legal") {
-                Link(destination: URL(string: "https://loocodes.app/terms")!) {
+                Link(destination: URL(string: "https://loocodes.vercel.app/terms")!) {
                     Label("Terms of Service", systemImage: "doc.text")
                 }
-                Link(destination: URL(string: "https://loocodes.app/privacy")!) {
+                Link(destination: URL(string: "https://loocodes.vercel.app/privacy")!) {
                     Label("Privacy Policy", systemImage: "hand.raised")
                 }
                 Link(destination: URL(string: "https://loocodes.app/licenses")!) {
