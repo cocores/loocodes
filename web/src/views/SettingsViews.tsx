@@ -263,7 +263,7 @@ export function AboutView({ onBack }: SubScreenProps) {
         <SettingsSection title="Legal">
           <LinkRow icon="📄" label="Terms of Service" href="https://loocodes.vercel.app/terms" />
           <LinkRow icon="🤚" label="Privacy Policy" href="https://loocodes.vercel.app/privacy" />
-          <LinkRow icon="{ }" label="Open Source Licenses" href="https://loocodes.app/licenses" />
+          <LinkRow icon="{ }" label="Open Source Licenses" href="https://loocodes.vercel.app/licenses" />
         </SettingsSection>
 
         <SettingsSection title="Support">

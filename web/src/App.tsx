@@ -7,7 +7,7 @@ import { LoginView } from "./views/LoginView";
 import { ShareView } from "./views/ShareView";
 import { BathroomListView } from "./views/BathroomListView";
 import { ProfileView } from "./views/ProfileView";
-import { PrivacyView, TermsView } from "./views/LegalView";
+import { LicensesView, PrivacyView, TermsView } from "./views/LegalView";
 import "./App.css";
 
 type Tab = "share" | "nearby" | "profile";
@@ -27,6 +27,7 @@ function App() {
               and a signed-out visitor both need to be able to open these. */}
           <Route path="/terms" element={<TermsView />} />
           <Route path="/privacy" element={<PrivacyView />} />
+          <Route path="/licenses" element={<LicensesView />} />
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/*" element={<ProtectedRoute />} />
         </Routes>

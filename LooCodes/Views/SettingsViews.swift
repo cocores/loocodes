@@ -281,7 +281,7 @@ struct AboutView: View {
                 Link(destination: URL(string: "https://loocodes.vercel.app/privacy")!) {
                     Label("Privacy Policy", systemImage: "hand.raised")
                 }
-                Link(destination: URL(string: "https://loocodes.app/licenses")!) {
+                Link(destination: URL(string: "https://loocodes.vercel.app/licenses")!) {
                     Label("Open Source Licenses", systemImage: "curlybraces")
                 }
             }

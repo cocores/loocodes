@@ -8,7 +8,15 @@ import "./LegalView.css";
 // (firestore.rules' data-model comment is the other place that drifts).
 const LAST_UPDATED = "October 4, 2026";
 
-function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
+function LegalLayout({
+  title,
+  showLegalDisclaimer = true,
+  children,
+}: {
+  title: string;
+  showLegalDisclaimer?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="legal">
       <header className="legal__header">
@@ -19,11 +27,13 @@ function LegalLayout({ title, children }: { title: string; children: ReactNode }
       <div className="legal__body">
         <h1>{title}</h1>
         <p className="legal__updated">Last updated: {LAST_UPDATED}</p>
-        <p className="legal__disclaimer">
-          This is a plain-language draft, not legal advice — it describes how LooCodes actually
-          works today. Have a lawyer review it against your local requirements (GDPR, CCPA, App
-          Store/Play Store policies, etc.) before relying on it for a public launch.
-        </p>
+        {showLegalDisclaimer && (
+          <p className="legal__disclaimer">
+            This is a plain-language draft, not legal advice — it describes how LooCodes actually
+            works today. Have a lawyer review it against your local requirements (GDPR, CCPA, App
+            Store/Play Store policies, etc.) before relying on it for a public launch.
+          </p>
+        )}
         {children}
       </div>
     </div>
@@ -242,6 +252,74 @@ export function PrivacyView() {
       <p>
         Questions about this policy or your data? Reach us at{" "}
         <a href="mailto:hello@loocodes.app">hello@loocodes.app</a>.
+      </p>
+    </LegalLayout>
+  );
+}
+
+interface LicenseEntry {
+  name: string;
+  version: string;
+  license: string;
+  url: string;
+}
+
+// Kept as a hand-maintained list rather than generated at build time —
+// update it when a dependency is added, removed, or bumped to a new major
+// version. Versions are the range/floor actually pinned in web/package.json
+// and project.yml, not necessarily what's resolved right now.
+const WEB_LICENSES: LicenseEntry[] = [
+  { name: "React / React DOM", version: "19.x", license: "MIT", url: "https://github.com/facebook/react" },
+  { name: "React Router", version: "7.x", license: "MIT", url: "https://github.com/remix-run/react-router" },
+  { name: "Firebase JS SDK", version: "12.x", license: "Apache-2.0", url: "https://github.com/firebase/firebase-js-sdk" },
+  { name: "Leaflet", version: "1.9.x", license: "BSD-2-Clause", url: "https://github.com/Leaflet/Leaflet" },
+  { name: "Leaflet.markercluster", version: "1.5.x", license: "MIT", url: "https://github.com/Leaflet/Leaflet.markercluster" },
+];
+
+const IOS_LICENSES: LicenseEntry[] = [
+  { name: "Firebase iOS SDK", version: "11.x+", license: "Apache-2.0", url: "https://github.com/firebase/firebase-ios-sdk" },
+  { name: "GoogleSignIn-iOS", version: "7.1.x+", license: "Apache-2.0", url: "https://github.com/google/GoogleSignIn-iOS" },
+];
+
+function LicenseList({ entries }: { entries: LicenseEntry[] }) {
+  return (
+    <ul className="legal__licenses">
+      {entries.map((e) => (
+        <li key={e.name}>
+          <div className="legal__license-row">
+            <a href={e.url} target="_blank" rel="noopener noreferrer">
+              {e.name}
+            </a>
+            <span className="legal__license-badge">{e.license}</span>
+          </div>
+          <div className="legal__license-version">v{e.version}</div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function LicensesView() {
+  return (
+    <LegalLayout title="Open Source Licenses" showLegalDisclaimer={false}>
+      <p>
+        LooCodes is built on the open source projects below. We're grateful to their authors and
+        contributors — each remains under its own license, linked here.
+      </p>
+
+      <h2>Web app</h2>
+      <LicenseList entries={WEB_LICENSES} />
+
+      <h2>iOS app</h2>
+      <LicenseList entries={IOS_LICENSES} />
+
+      <h2>Map data</h2>
+      <p>
+        Map tiles and location data are ©{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
+          OpenStreetMap
+        </a>{" "}
+        contributors, available under the Open Database License (ODbL).
       </p>
     </LegalLayout>
   );
