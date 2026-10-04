@@ -152,6 +152,7 @@ service cloud.firestore {
           'kck_opendata', 'kcmo_parksrec', 'dc_opendata', 'nps_mall',
           'stl_forestpark', 'stl_parksrec', 'barcelona_opendata', 'lisboa_opendata',
           'athens_opendata', 'cdmx_opendata', 'toronto_opendata',
+          'tokyo_opendata', 'portland_opendata',
         ];
       }
 

@@ -23,6 +23,7 @@ const CITIES_AVAILABLE: { region: string; cities: { name: string; count: number 
       { name: "Miami, FL", count: 20 },
       { name: "Mexico City, Mexico", count: 12 },
       { name: "Toronto, Canada", count: 19 },
+      { name: "Portland, OR", count: 20 },
     ],
   },
   {
@@ -36,6 +37,10 @@ const CITIES_AVAILABLE: { region: string; cities: { name: string; count: number 
       { name: "Lisbon, Portugal", count: 5 },
       { name: "Athens, Greece", count: 4 },
     ],
+  },
+  {
+    region: "Asia",
+    cities: [{ name: "Tokyo, Japan", count: 17 }],
   },
 ];
 
