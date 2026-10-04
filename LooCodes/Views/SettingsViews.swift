@@ -229,6 +229,7 @@ struct AboutView: View {
         CityCount(name: "San Francisco, CA", count: 16),
         CityCount(name: "Miami, FL", count: 20),
         CityCount(name: "Mexico City, Mexico", count: 12),
+        CityCount(name: "Toronto, Canada", count: 19),
     ]
     private let europe: [CityCount] = [
         CityCount(name: "London, UK", count: 18),
