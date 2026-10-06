@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { bathroomType, type Bathroom } from "../types";
+import { displayCode } from "../lib/code";
 import "./SettingsViews.css";
 import "./AdminFlaggedView.css";
 
@@ -83,7 +84,7 @@ function FlaggedCard({
         </span>
       </div>
 
-      {bathroom.code && <div className="admin-flagged__code">Code: {bathroom.code}</div>}
+      {bathroom.code && <div className="admin-flagged__code">Code: {displayCode(bathroom.code)}</div>}
       {bathroom.note && <div className="admin-flagged__note">📝 {bathroom.note}</div>}
 
       {bathroom.suggestions.length > 0 && (

@@ -23,7 +23,7 @@ struct CodeBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "key.fill")
-            Text(isFreeNoCode ? "FREE" : code)
+            Text(isFreeNoCode ? "FREE" : code.displayCode)
                 .monospaced()
         }
         .font(.caption.weight(.bold))

@@ -31,6 +31,11 @@
   color: var(--muted);
 }
 
+.dark-input:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 textarea.dark-input {
   resize: vertical;
   min-height: 64px;

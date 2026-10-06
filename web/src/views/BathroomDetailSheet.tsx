@@ -14,6 +14,7 @@ import {
 import { StarRating } from "../components/StarRating";
 import { BathroomsMap } from "../components/BathroomsMap";
 import { formatRelativeTime } from "../lib/time";
+import { displayCode } from "../lib/code";
 import { openWalkingDirections } from "../lib/directions";
 import "./BathroomDetailSheet.css";
 
@@ -49,7 +50,7 @@ export function BathroomDetailSheet({
 
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(current.code);
+      await navigator.clipboard.writeText(displayCode(current.code));
     } catch {
       // clipboard API unavailable, ignore
     }
@@ -89,7 +90,7 @@ export function BathroomDetailSheet({
           <div className="detail__code-box">
             <div className="detail__code-label">🔑 ACCESS CODE</div>
             <div className="detail__code-row">
-              <span className="detail__code">{current.code || "FREE"}</span>
+              <span className="detail__code">{displayCode(current.code) || "FREE"}</span>
               <button
                 type="button"
                 className={`detail__copy ${copied ? "detail__copy--copied" : ""}`}

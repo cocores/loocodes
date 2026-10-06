@@ -43,6 +43,7 @@ struct ShareView: View {
     ]
 
     private var canShare: Bool { !name.isEmpty && (!code.isEmpty || (isFree && type == .publicRestroom)) }
+    private var isCodeNA: Bool { code.trimmingCharacters(in: .whitespaces).uppercased() == "N/A" }
 
     var body: some View {
         NavigationStack {
@@ -57,6 +58,18 @@ struct ShareView: View {
                     FormField(label: "Access Code") {
                         TextField("e.g. 1234", text: $code)
                             .textFieldStyle(DarkTextFieldStyle())
+                            .disabled(isCodeNA)
+                        Toggle(isOn: Binding(
+                            get: { isCodeNA },
+                            set: { code = $0 ? "N/A" : "" }
+                        )) {
+                            HStack {
+                                Image(systemName: "nosign").font(.title3)
+                                Text("No code needed (N/A)").foregroundStyle(.white)
+                            }
+                        }
+                        .tint(Color(hex: "34c759"))
+                        .padding(.top, 8)
                     }
 
                     FormField(label: "Type") {

@@ -66,6 +66,7 @@ export function ShareView({
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const canShare = name.trim() !== "" && (code.trim() !== "" || (isFree && type === "publicRestroom"));
+  const isCodeNA = code.trim().toUpperCase() === "N/A";
 
   const publishCode = () => {
     let coord: Coordinate;
@@ -142,8 +143,13 @@ export function ShareView({
             className="dark-input"
             placeholder="e.g. 1234"
             value={code}
+            disabled={isCodeNA}
             onChange={(e) => setCode(e.target.value)}
           />
+          <label className="share-view__toggle-row" style={{ marginTop: 8 }}>
+            <span>🚫 No code needed (N/A)</span>
+            <Switch checked={isCodeNA} onChange={(checked) => setCode(checked ? "N/A" : "")} />
+          </label>
         </FormField>
 
         <FormField label="Type">

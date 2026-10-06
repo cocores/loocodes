@@ -57,12 +57,12 @@ struct BathroomDetailSheet: View {
                     .foregroundStyle(Color(hex: "8888aa"))
 
                     HStack {
-                        Text(current.code.isEmpty ? "FREE" : current.code)
+                        Text(current.code.isEmpty ? "FREE" : current.code.displayCode)
                             .font(.system(size: 34, weight: .bold, design: .monospaced))
                             .foregroundStyle(Color(hex: "5b9ef5"))
                         Spacer()
                         Button {
-                            UIPasteboard.general.string = current.code
+                            UIPasteboard.general.string = current.code.displayCode
                             copied = true
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
                         } label: {
