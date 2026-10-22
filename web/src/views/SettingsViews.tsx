@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useAuth } from "../store/AuthContext";
 import { useBathroomStore } from "../store/BathroomStoreContext";
 import { Switch } from "../components/Switch";
+import { SamuraiLogoIcon } from "../components/SamuraiLogoIcon";
 import "./SettingsViews.css";
 
 // Curated open-data coverage only — a static snapshot of the seed datasets
@@ -276,6 +277,11 @@ export function AboutView({ onBack }: SubScreenProps) {
           <LinkRow icon="✉️" label="Contact Us" href="mailto:hello@loocodes.app" />
           <LinkRow icon="⭐" label="Rate on App Store" href="https://apps.apple.com" />
         </SettingsSection>
+
+        <div className="about-credit">
+          <SamuraiLogoIcon size={16} />
+          <span>Made by samurAI</span>
+        </div>
       </div>
     </div>
   );

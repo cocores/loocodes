@@ -305,6 +305,18 @@ struct AboutView: View {
                     Label("Rate on App Store", systemImage: "star")
                 }
             }
+
+            Section {
+                HStack(spacing: 7) {
+                    Spacer()
+                    SamuraiLogoIcon(size: 16)
+                    Text("Made by samurAI")
+                        .font(.footnote.weight(.semibold))
+                    Spacer()
+                }
+                .foregroundStyle(.white)
+                .listRowBackground(Color.clear)
+            }
         }
         .scrollContentBackground(.hidden)
         .background(Color(hex: "1a1a1f"))

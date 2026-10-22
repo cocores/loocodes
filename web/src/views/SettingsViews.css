@@ -241,3 +241,14 @@
   font-size: 14px;
   color: var(--muted);
 }
+
+.about-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 16px 0 4px;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+}
