@@ -43,6 +43,10 @@ const CITIES_AVAILABLE: { region: string; cities: { name: string; count: number 
     region: "Asia",
     cities: [{ name: "Tokyo, Japan", count: 17 }],
   },
+  {
+    region: "Oceania",
+    cities: [{ name: "Sydney, Australia", count: 20 }],
+  },
 ];
 
 interface SubScreenProps {

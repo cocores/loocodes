@@ -30,6 +30,7 @@ import {
   SAN_FRANCISCO_TOILETS,
   SEED_BATHROOMS,
   ST_LOUIS_TOILETS,
+  SYDNEY_TOILETS,
   TOKYO_TOILETS,
   TORONTO_TOILETS,
   WASHINGTON_DC_TOILETS,
@@ -154,6 +155,7 @@ async function ensureSeeded(): Promise<void> {
     ...TORONTO_TOILETS,
     ...TOKYO_TOILETS,
     ...PORTLAND_TOILETS,
+    ...SYDNEY_TOILETS,
   ]) {
     if (!existingIds.has(toilet.id)) {
       batch.set(doc(db, COLLECTION, toilet.id), withVoteFields(toilet));

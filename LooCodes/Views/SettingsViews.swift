@@ -244,7 +244,10 @@ struct AboutView: View {
     private let asia: [CityCount] = [
         CityCount(name: "Tokyo, Japan", count: 17),
     ]
-    private var totalCities: Int { northAmerica.count + europe.count + asia.count }
+    private let oceania: [CityCount] = [
+        CityCount(name: "Sydney, Australia", count: 20),
+    ]
+    private var totalCities: Int { northAmerica.count + europe.count + asia.count + oceania.count }
 
     var body: some View {
         List {
@@ -281,6 +284,12 @@ struct AboutView: View {
 
             Section("Cities Available — Asia") {
                 ForEach(asia) { city in
+                    LabeledContent(city.name, value: "\(city.count) locations")
+                }
+            }
+
+            Section("Cities Available — Oceania") {
+                ForEach(oceania) { city in
                     LabeledContent(city.name, value: "\(city.count) locations")
                 }
             }
