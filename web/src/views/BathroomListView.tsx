@@ -27,9 +27,18 @@ type ViewMode = "list" | "map";
 
 // Freshest/most-confirmed first — this is what "sorted by trust score and
 // last confirmed date" means in practice (the decay in computeTrustScore
-// already folds recency in), applied within each distance bucket.
+// already folds recency in). Used only when distance isn't known yet (no
+// location fix) — once it is, distance takes over as the sort key instead.
 function sortByTrust(list: Bathroom[]): Bathroom[] {
   return [...list].sort((a, b) => computeTrustScore(b) - computeTrustScore(a));
+}
+
+// Closest first within a bucket — the buckets themselves are already
+// ordered near-to-far (Close By, Further Away, Far Away), so sorting each
+// one's contents by distance too means the whole list reads closest to
+// farthest top to bottom, not just bucket to bucket.
+function sortByDistance(list: Bathroom[], distanceMilesTo: (b: Bathroom) => number | null): Bathroom[] {
+  return [...list].sort((a, b) => (distanceMilesTo(a) ?? Infinity) - (distanceMilesTo(b) ?? Infinity));
 }
 
 export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coordinate: Coordinate) => void }) {
@@ -70,9 +79,9 @@ export function BathroomListView({ onAddAtLocation }: { onAddAtLocation?: (coord
       else farAway.push(b);
     }
     return {
-      closeBy: sortByTrust(closeBy),
-      furtherAway: sortByTrust(furtherAway),
-      farAway: sortByTrust(farAway),
+      closeBy: sortByDistance(closeBy, distanceMilesTo),
+      furtherAway: sortByDistance(furtherAway, distanceMilesTo),
+      farAway: sortByDistance(farAway, distanceMilesTo),
     };
   }, [filtered, location, distanceMilesTo]);
 

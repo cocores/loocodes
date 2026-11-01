@@ -15,12 +15,21 @@ struct BathroomListView: View {
     private static let localAreaMaxMiles: Double = 15
 
     private var filtered: [Bathroom] {
-        store.bathrooms.filter {
-            guard (selectedType == nil || $0.type == selectedType) &&
-                (!adaOnly || $0.isADAAccessible) else { return false }
-            guard let miles = locationService.distanceMiles(to: $0.coordinate) else { return true }
-            return miles < Self.localAreaMaxMiles
-        }
+        store.bathrooms
+            .filter {
+                guard (selectedType == nil || $0.type == selectedType) &&
+                    (!adaOnly || $0.isADAAccessible) else { return false }
+                guard let miles = locationService.distanceMiles(to: $0.coordinate) else { return true }
+                return miles < Self.localAreaMaxMiles
+            }
+            // Closest first. Unknown-distance bathrooms (no location fix yet)
+            // sort to the end rather than scattering through the list; once a
+            // fix lands this recomputes and they settle into place.
+            .sorted {
+                let d0 = locationService.distanceMiles(to: $0.coordinate) ?? .greatestFiniteMagnitude
+                let d1 = locationService.distanceMiles(to: $1.coordinate) ?? .greatestFiniteMagnitude
+                return d0 < d1
+            }
     }
 
     var body: some View {
